@@ -1,0 +1,56 @@
+{
+  "Camera": {
+    "default": {
+      "resolution": [
+        256,
+        256
+      ],
+      "fov":120,
+      "colour": true,
+      "depth": true,
+      "annotation": true,
+      "instance": true,
+      "bounding_box":false
+    }
+  },
+  "Lidar": {
+    "default": {
+      "vertical_resolution": 32,
+      "vertical_angle": 26.9,
+      "rps": 2200000,
+      "hz": 20,
+      "angle": 360,
+      "max_distance": 10,
+      "direction": [0, -1, 0]
+    }
+  },
+  "Ultrasonic": {
+    "smallrange": {
+      "fov": [
+        70,
+        35
+      ],
+      "min_resolution": 256,
+      "min_distance": 0.15,
+      "max_distance": 2.5
+    },
+    "midrange": {
+      "fov": [
+        70,
+        35
+      ],
+      "min_resolution": 256,
+      "min_distance": 0.15,
+      "max_distance": 4.5
+    },
+    "largerange": {
+      "fov": [
+        70,
+        35
+      ],
+      "min_resolution": 256,
+      "min_distance": 0.15,
+      "max_distance": 5.5
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "version": 0.1,
+  "level": "smallgrid",
+  "name": "unittest scenario",
+  "mode": "None",
+  "vehicles": [
+    {
+      "name": "ego_vehicle",
+      "model": "etk800",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0, 1],
+      "sensors": [
+        {
+          "type": "Camera.default",
+          "name": "front_cam",
+          "position": [-0.3, 1, 1],
+          "rotation": [0, 1, 0]
+        },
+        {
+          "type" : "CameraNoise",
+          "name": "noise_cam",
+          "base sensor": "front_cam"
+        },
+        {
+          "type":"GForces",
+          "name":"gforce"
+        },
+        {
+          "type": "Electrics",
+          "name": "electrics"
+        },
+        {
+          "type":"Timer",
+          "name":"time"
+        },
+        {
+          "type":"Damage",
+          "name":"damage"
+        },
+        {
+          "type": "Lidar.default",
+          "name": "lidar",
+          "position": [0, 0, 1.7],
+          "max_distance": 20
+        },
+        {
+          "type" : "LidarNoise",
+          "name": "lidar_noise",
+          "base sensor": "lidar"
+        }
+      ]
+    }
+  ]
+}

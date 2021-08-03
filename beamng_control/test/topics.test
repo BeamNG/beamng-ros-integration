@@ -1,0 +1,8 @@
+<launch>
+  <group ns="beamng">
+      <param name="host" value="localhost"/>
+      <param name="port" value="64255"/>
+  </group>
+  <node pkg="beamng_control" type="bridge.py" name="beamng_control" />
+  <test test-name="test_topics" pkg="beamng_control" type="test_topics.py" />
+</launch>

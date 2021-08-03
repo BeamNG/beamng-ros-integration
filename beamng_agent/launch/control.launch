@@ -1,0 +1,4 @@
+<launch>
+    <arg name="vehicle_id"/>
+    <node pkg="beamng_agent" type="control.py" name="control" args="$(arg vehicle_id)"/>
+</launch>
