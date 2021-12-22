@@ -1,6 +1,6 @@
 <launch>
     <arg name="host"/>
-    <arg name="port" default="64255"/>
+    <arg name="port" default="64256"/>
     <group ns="beamng">
         <param name="host" value="$(arg host)"/>
         <param name="port" value="$(arg port)"/>
