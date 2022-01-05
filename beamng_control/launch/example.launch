@@ -1,7 +1,8 @@
 <launch>
     <include file="$(find beamng_control)/launch/bridge.launch">
-        <!-- substitute with the ip address of your target machine-->
-        <arg name="host" value="127.0.0.1"/>
+        <!-- substitute with the ip address of your target machine
+        it prefeable to choose IPV4 of the host machine [it shoud be the mcachine that has the Game]-->
+        <arg name="host" value="192.168.0.113"/>
         <!-- choose scenario-->
         <arg name="scenario_config" value="$(find beamng_control)/config/scenarios/simple_scenario.json"/>
     </include>
