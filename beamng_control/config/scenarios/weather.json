@@ -1,7 +1,7 @@
 {
   "version": 0.1,
   "level": "Cliff",
-  "name": "weather_test",
+  "name": "weather_rainy_test",
   "mode": "None",
   "weather_presets":"rainy",
   "time_of_day":0.25,
