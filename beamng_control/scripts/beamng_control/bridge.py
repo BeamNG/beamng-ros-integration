@@ -1,4 +1,4 @@
-#!/usr/bin python3
+#!/usr/bin/env python3
 
 
 import sys
@@ -62,6 +62,11 @@ class BeamNGBridge(object):
     def _setup_sensor_defs(self, sensor_paths):
         default_path = ['/config/sensors.json']
         sensor_paths = default_path if not sensor_paths else sensor_paths
+        print("------------")
+        print("------------")
+        print ("sensor_paths",sensor_paths)
+        print("------------")
+        print("------------")
         sensor_defs = dict()
         for path in sensor_paths:
             s = load_json(path)
