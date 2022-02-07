@@ -22,6 +22,12 @@
         {
           "name":"time0",
           "type":"Timer"
+        }, 
+        {
+          "name": "front_cam",
+          "type": "Camera.default",
+          "position": [-0.3, 1, 1],
+          "rotation": [0, 1, 0]
         }
       ]
     }
