@@ -30,11 +30,6 @@
           "rotation": [0, 1, 0]
         },
         {
-          "name": "noise_cam",
-          "type" : "CameraNoise",
-          "base sensor": "front_cam"
-        },
-        {
           "name":"parking_sensor",
           "type":"Ultrasonic.smallrange",
           "position":[0, 1, 2],
@@ -43,6 +38,21 @@
         {
           "name": "electrics0",
           "type": "Electrics"
+        },
+                {
+          "name": "lidar0",
+          "type": "Lidar.default",
+          "position": [0, 0, 1.7]
+        },   
+        {
+          "name": "node_imu",
+          "type": "IMU",
+          "node": 0
+        },
+        {
+          "name": "position_imu",
+          "type": "IMU",
+          "position": [0.73, 0.51, 0.8]
         }
       ]
     }
