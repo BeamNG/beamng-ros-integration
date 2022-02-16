@@ -11,56 +11,56 @@
       "rotation": [0, 0, 0, 1],
       "sensors": [
         {
-          "type":"Damage",
-          "name":"damage0"
+          "name":"damage0",
+          "type":"Damage"
         },
         {
-          "type":"Timer",
-          "name":"time0"
+          "name":"time0",
+          "type":"Timer"
         },
         {
-          "type":"GForces",
-          "name":"gforce0"
+          "name":"gforce0",
+          "type":"GForces"
         },
         {
-          "type":"Ultrasonic.smallrange",
           "name":"parking_sensor",
+          "type":"Ultrasonic.smallrange",
           "position":[0, 1, 2],
           "rotation":[0, 1, 0]
         },
         {
-          "type": "Electrics",
-          "name": "electrics0"
+          "name": "electrics0",
+          "type": "Electrics"
         },
         {
-          "type": "Camera.default",
           "name": "front_cam",
+          "type": "Camera.default",
           "position": [-0.3, 1, 1],
           "rotation": [0, 1, 0]
         },
         {
-          "type": "Lidar.default",
-          "name": "lidar0",
-          "position": [0, 0, 1.7]
-        },
-        {
-          "type" : "CameraNoise",
           "name": "noise_cam",
+          "type" : "CameraNoise",
           "base sensor": "front_cam"
         },
         {
-          "type" : "LidarNoise",
+          "name": "lidar0",
+          "type": "Lidar.default",
+          "position": [0, 0, 1.7]
+        },
+        {
           "name": "lidar_noise",
+          "type" : "LidarNoise",
           "base sensor": "lidar0"
         },
         {
-          "type": "IMU",
           "name": "node_imu",
+          "type": "IMU",
           "node": 0
         },
         {
-          "type": "IMU",
           "name": "position_imu",
+          "type": "IMU",
           "position": [0.73, 0.51, 0.8]
         }
       ]
