@@ -1,5 +1,5 @@
 <launch>
-    <arg name="scenario" default="simple_scenario_pickup" doc="[simple_scenario, west_coast_with_electrics, simple_scenario_pickup, west_coast_with_lidar, weather, west_coast_with_sensors, west_coast, west_scenario_cam west_coast_with_all_sensors]"/>
+    <arg name="scenario" default="west_coast_with_sensors" doc="[simple_scenario, west_coast_with_electrics, simple_scenario_pickup, west_coast_with_lidar, weather, west_coast_with_sensors, west_coast, west_scenario_cam west_coast_with_all_sensors]"/>
     <include file="$(find beamng_control)/launch/bridge.launch">
         <!-- substitute with the ip address of your target machine-->
          <arg name="host" value="192.168.0.113"/> 
