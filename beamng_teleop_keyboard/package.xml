@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>beamng_teleop_keyboard</name>
+  <version>1.2.1</version>
+  <description>
+    Provides teleoperation using keyboard to move the vehicles in BemaNG simulation using geometry messages 
+  </description>
+  <license>MIT</license>
+  <author email="info@beamng.gmbh">BeamNG GmbH</author>
+  <maintainer email="info@beamng.gmbh">BeamNG GmbH</maintainer>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>geometry_msgs</depend>
+</package>
