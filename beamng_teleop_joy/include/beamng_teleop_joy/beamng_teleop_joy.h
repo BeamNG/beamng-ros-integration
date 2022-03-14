@@ -1,7 +1,6 @@
 /**
 Software License Agreement (BSD)
 
-\file      teleop_node.cpp
 \authors   Mike Purvis <mpurvis@clearpathrobotics.com>
 \copyright Copyright (c) 2014, Clearpath Robotics, Inc., All rights reserved.
 
@@ -23,15 +22,27 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCL
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "ros/ros.h"
-#include "beamng_teleop_joy/beamng_teleop_joy.h"
+#ifndef BEAMNG_TELEOP_JOY_BEAMNG_TELEOP_JOY_H
+#define BEAMNG_TELEOP_JOY_BEAMNG_TELEOP_JOY_H
 
-int main(int argc, char *argv[])
+namespace ros { class NodeHandle; }
+
+namespace beamng_teleop_joy
 {
-  ros::init(argc, argv, "beamng_teleop_joy_node");
 
-  ros::NodeHandle nh(""), nh_param("~");
-  beamng_teleop_joy::BeamngTeleopJoy joy_teleop(&nh, &nh_param);
+/**
+ * Class implementing a basic Joy -> Twist translation.
+ */
+class BeamngTeleopJoy
+{
+public:
+  BeamngTeleopJoy(ros::NodeHandle* nh, ros::NodeHandle* nh_param);
 
-  ros::spin();
-}
+private:
+  struct Impl;
+  Impl* pimpl_;
+};
+
+}  // namespace teleop_twist_joy
+
+#endif  // BEAMNG_TELEOP_JOY_BEAMNG_TELEOP_JOY_H

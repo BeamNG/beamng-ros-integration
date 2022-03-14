@@ -11,10 +11,21 @@ if os.name == 'nt':
 else:
   import tty, termios
 
-AGV_MAX_LIN_VEL = 1.0
+
+import json
+import subprocess
+
+import beamngpy as bngpy
+from beamng_msgs.msg import VehicleControl
+# import beamng_msgs.msg as bng_msgs
+
+from pathlib import Path
+from distutils.version import LooseVersion
+
+AGV_MAX_LIN_VEL = 100
 AGV_MAX_ANG_VEL = 1.0 
 
-LIN_VEL_STEP_SIZE = 0.01
+LIN_VEL_STEP_SIZE = 2
 ANG_VEL_STEP_SIZE = 0.01
 
 msg = """
@@ -91,6 +102,10 @@ if __name__=="__main__":
 
     rospy.init_node('teleop')
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+    # BNG_pub =   rospy.Publisher('control', bng_msgs.VehicleControl ,queue_size=10)
+    BNG_pub =   rospy.Publisher('control', VehicleControl ,queue_size=10)
+    # BNG_pub =   rospy.Publisher('control', BNG_msgs,queue_size=2)
+
 
 
     status = 0
@@ -142,6 +157,32 @@ if __name__=="__main__":
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
 
             pub.publish(twist)
+            # print("twist",twist)
+            # BNG_Teleop_msg=0 1 0 0 0 1
+            Vehicle_Control_msg=VehicleControl()
+            Vehicle_Control_msg.steering = control_angular_vel
+            Vehicle_Control_msg.throttle = control_linear_vel
+            Vehicle_Control_msg.brake = 0.0 
+            Vehicle_Control_msg.parkingbrake = 0.0 
+            Vehicle_Control_msg.clutch = 0.0
+            Vehicle_Control_msg.gear = 1
+            print ("Vehicle_Control_msg",Vehicle_Control_msg)
+            BNG_pub.publish(Vehicle_Control_msg)
+            command= "rostopic pub -1 control beamng_msgs/VehicleControl "
+            a = "0 1 0 0 0 1" 
+            # print("",a)
+            combine = command + a
+            print ("" , combine)
+            os.popen(combine)
+            # print("command",command)
+            # print ("Vehicle_Control_msg.steering" ,Vehicle_Control_msg.steering)
+            # print ("Vehicle_Control_msg.throttle" ,Vehicle_Control_msg.throttle)
+            # print ("Vehicle_Control_msg.brake" ,Vehicle_Control_msg.brake)
+            # print ("Vehicle_Control_msg.parkingbrake" ,Vehicle_Control_msg.parkingbrake)
+            # print ("Vehicle_Control_msg.gear" ,Vehicle_Control_msg.gear)
+            # print ("Vehicle_Control_msg.clutch" ,Vehicle_Control_msg.clutch)
+            
+
 
     except:
         print(e)
