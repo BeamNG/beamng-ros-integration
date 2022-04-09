@@ -14,7 +14,7 @@ else:
 
 import json
 import subprocess
-
+import os
 import beamngpy as bngpy
 from beamng_msgs.msg import VehicleControl
 # import beamng_msgs.msg as bng_msgs
@@ -22,10 +22,10 @@ from beamng_msgs.msg import VehicleControl
 from pathlib import Path
 from distutils.version import LooseVersion
 
-AGV_MAX_LIN_VEL = 100
+AGV_MAX_LIN_VEL = 250
 AGV_MAX_ANG_VEL = 1.0 
 
-LIN_VEL_STEP_SIZE = 2
+LIN_VEL_STEP_SIZE = 1
 ANG_VEL_STEP_SIZE = 0.01
 
 msg = """
@@ -96,6 +96,7 @@ def checkAngularLimitVelocity(vel):
     vel = constrain(vel, -AGV_MAX_ANG_VEL, AGV_MAX_ANG_VEL)
     return vel
 
+
 if __name__=="__main__":
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
@@ -103,7 +104,7 @@ if __name__=="__main__":
     rospy.init_node('teleop')
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
     # BNG_pub =   rospy.Publisher('control', bng_msgs.VehicleControl ,queue_size=10)
-    BNG_pub =   rospy.Publisher('control', VehicleControl ,queue_size=10)
+    # BNG_pub =   rospy.Publisher('control', VehicleControl ,queue_size=10)
     # BNG_pub =   rospy.Publisher('control', BNG_msgs,queue_size=2)
 
 
@@ -126,11 +127,11 @@ if __name__=="__main__":
                 target_linear_vel = checkLinearLimitVelocity(target_linear_vel - LIN_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
-            elif key == 'a' :
+            elif key == 'd' :
                 target_angular_vel = checkAngularLimitVelocity(target_angular_vel + ANG_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
-            elif key == 'd' :
+            elif key == 'a' :
                 target_angular_vel = checkAngularLimitVelocity(target_angular_vel - ANG_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
@@ -157,33 +158,7 @@ if __name__=="__main__":
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
 
             pub.publish(twist)
-            # print("twist",twist)
-            # BNG_Teleop_msg=0 1 0 0 0 1
-            Vehicle_Control_msg=VehicleControl()
-            Vehicle_Control_msg.steering = control_angular_vel
-            Vehicle_Control_msg.throttle = control_linear_vel
-            Vehicle_Control_msg.brake = 0.0 
-            Vehicle_Control_msg.parkingbrake = 0.0 
-            Vehicle_Control_msg.clutch = 0.0
-            Vehicle_Control_msg.gear = 1
-            print ("Vehicle_Control_msg",Vehicle_Control_msg)
-            BNG_pub.publish(Vehicle_Control_msg)
-            command= "rostopic pub -1 control beamng_msgs/VehicleControl "
-            a = "0 1 0 0 0 1" 
-            # print("",a)
-            combine = command + a
-            print ("" , combine)
-            os.popen(combine)
-            # print("command",command)
-            # print ("Vehicle_Control_msg.steering" ,Vehicle_Control_msg.steering)
-            # print ("Vehicle_Control_msg.throttle" ,Vehicle_Control_msg.throttle)
-            # print ("Vehicle_Control_msg.brake" ,Vehicle_Control_msg.brake)
-            # print ("Vehicle_Control_msg.parkingbrake" ,Vehicle_Control_msg.parkingbrake)
-            # print ("Vehicle_Control_msg.gear" ,Vehicle_Control_msg.gear)
-            # print ("Vehicle_Control_msg.clutch" ,Vehicle_Control_msg.clutch)
             
-
-
     except:
         print(e)
 

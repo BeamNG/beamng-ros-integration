@@ -2,6 +2,7 @@
   <!-- <remap from="cmd_vel" to="/teleop/cmd_vel"/> -->
 
   <node pkg="beamng_teleop_keyboard" type="teleop_key" name="teleop_keyboard"  output="screen"/>
+  <node pkg="beamng_teleop_keyboard" type="converter" name="teleop_message_converter"  output="log"/>
   <!-- <node pkg="beamng_teleop_keyboard" type="twist_converter" name="twist_converter_node"  output="screen"/> -->
   <!-- </node> -->
 </launch>
