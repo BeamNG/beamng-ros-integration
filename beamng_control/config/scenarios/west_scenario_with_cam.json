@@ -11,11 +11,11 @@
       "position": [568.908, 13.422,  148.565],
       "rotation": [0, 0, 0, 1],
       "sensors": [
-
         {
-          "name": "lidar0",
-          "type": "Lidar.default",
-          "position": [0, 0, 1.7]
+          "name": "front_cam",
+          "type": "Camera.default",
+          "position": [-0.3, 1, 1],
+          "rotation": [0, 1, 0]
         }
       ]
     }
