@@ -11,7 +11,6 @@
       "position": [568.908, 13.422,  148.565],
       "rotation": [0, 0, 0, 1],
       "sensors": [
-
         {
           "name": "electrics0",
           "type": "Electrics"

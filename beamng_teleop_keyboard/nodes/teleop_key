@@ -11,14 +11,25 @@ if os.name == 'nt':
 else:
   import tty, termios
 
-AGV_MAX_LIN_VEL = 1.0
+
+import json
+import subprocess
+import os
+import beamngpy as bngpy
+from beamng_msgs.msg import VehicleControl
+# import beamng_msgs.msg as bng_msgs
+
+from pathlib import Path
+from distutils.version import LooseVersion
+
+AGV_MAX_LIN_VEL = 250
 AGV_MAX_ANG_VEL = 1.0 
 
-LIN_VEL_STEP_SIZE = 0.01
+LIN_VEL_STEP_SIZE = 1
 ANG_VEL_STEP_SIZE = 0.01
 
 msg = """
-Control Your Trackless AGV!
+Control your vehicle in BeamNG.Tech simulator !
 ---------------------------
 Moving around:
         w
@@ -85,12 +96,17 @@ def checkAngularLimitVelocity(vel):
     vel = constrain(vel, -AGV_MAX_ANG_VEL, AGV_MAX_ANG_VEL)
     return vel
 
+
 if __name__=="__main__":
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
 
     rospy.init_node('teleop')
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+    # BNG_pub =   rospy.Publisher('control', bng_msgs.VehicleControl ,queue_size=10)
+    # BNG_pub =   rospy.Publisher('control', VehicleControl ,queue_size=10)
+    # BNG_pub =   rospy.Publisher('control', BNG_msgs,queue_size=2)
+
 
 
     status = 0
@@ -111,11 +127,11 @@ if __name__=="__main__":
                 target_linear_vel = checkLinearLimitVelocity(target_linear_vel - LIN_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
-            elif key == 'a' :
+            elif key == 'd' :
                 target_angular_vel = checkAngularLimitVelocity(target_angular_vel + ANG_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
-            elif key == 'd' :
+            elif key == 'a' :
                 target_angular_vel = checkAngularLimitVelocity(target_angular_vel - ANG_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
@@ -142,7 +158,7 @@ if __name__=="__main__":
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
 
             pub.publish(twist)
-
+            
     except:
         print(e)
 

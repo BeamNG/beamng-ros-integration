@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
+import rospy
+from geometry_msgs.msg import Twist
 import sys
 import rospy
 import json
-
 import beamngpy as bngpy
 import beamng_msgs.msg as bng_msgs
 
@@ -73,6 +74,7 @@ def main():
     argv = rospy.myargv(argv=sys.argv)
     if len(argv)==2:
         VehicleControl(argv[1])
+        
     else:
         rospy.logerr("No Vehicle ID given, shutting down node.")
 

@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+
+from logging import exception
+import rospy
+from geometry_msgs.msg import Twist
+import subprocess
+import os
+import beamngpy as bngpy
+from beamng_msgs.msg import VehicleControl
+
+
+class twist2bng():
+	def __init__(self):
+		self.BNG_pub = rospy.Publisher('/control', VehicleControl ,queue_size=10)
+		self.cmd_vel_sub = rospy.Subscriber( '/cmd_vel', Twist, self.cmd_vel_callback , queue_size=10 )
+	#set puplish rate
+		self.checker_rate = rospy.Rate(10)
+		self.Vehicle_Control_msg=VehicleControl()
+		self.control_linear_vel_old=0
+		self.control_angular_vel_old=0
+		self.control_linear_vel_new=0
+		self.control_angular_vel_new=0
+		self.control_linear_vel=0
+		self.control_angular_vel=0
+		self.has_velosity=False
+		self.vehicle_state="initial"
+		self.main_loop()
+
+	# ------------- call back functions ---------------- #
+
+
+	def cmd_vel_callback(self, cmd_vel):
+		# self.has_velosity= cmd_vel
+		self.control_linear_vel_new= cmd_vel.linear.x
+		self.control_angular_vel_new= cmd_vel.angular.z
+        
+
+	def twist_msg_comparison(self):     
+		if self.control_linear_vel_old != self.control_linear_vel_new:
+		    # print ("new data")
+		    self.convert_cmd_to_bng(self.control_linear_vel_new,self.control_angular_vel_new)
+		    self.control_linear_vel_old = self.control_linear_vel_new
+		    return True 
+
+      
+		if self.control_angular_vel_old != self.control_angular_vel_new:
+		    # print ("new data")
+		    self.convert_cmd_to_bng(self.control_linear_vel_new,self.control_angular_vel_new)
+		    self.control_angular_vel_old = self.control_angular_vel_new
+		    return True 
+      
+		else:
+		    # print ("old data")
+		    return  False
+      
+            
+        
+      
+
+            
+        
+	def convert_cmd_to_bng(self,control_linear_vel,control_angular_vel):
+            # print ("inside convert_cmd_to_bng")
+            self.Vehicle_Control_msg=VehicleControl()
+            print ("",control_linear_vel)
+           
+            if control_linear_vel == 0.0 :    
+                self.Vehicle_Control_msg.throttle = 0.0
+                self.Vehicle_Control_msg.steering = 0.0
+                self.Vehicle_Control_msg.brake = 1
+                self.Vehicle_Control_msg.parkingbrake = 1 
+                self.Vehicle_Control_msg.clutch = 1
+                self.Vehicle_Control_msg.gear = 1
+                self.vehicle_state="stop"
+
+            if control_linear_vel < 0.0 :
+                self.Vehicle_Control_msg.throttle = abs(control_linear_vel)
+                self.Vehicle_Control_msg.steering = control_angular_vel
+                self.Vehicle_Control_msg.brake = 0
+                self.Vehicle_Control_msg.parkingbrake = 0 
+                self.Vehicle_Control_msg.clutch = 0
+                self.Vehicle_Control_msg.gear = -1
+                self.vehicle_state="reverse"
+                
+            else  :
+                self.Vehicle_Control_msg.throttle = abs(control_linear_vel)
+                self.Vehicle_Control_msg.steering = control_angular_vel
+                self.Vehicle_Control_msg.brake = 0
+                self.Vehicle_Control_msg.parkingbrake = 0 
+                self.Vehicle_Control_msg.clutch = 0
+                self.Vehicle_Control_msg.gear = 1
+                self.vehicle_state="go"
+                
+
+            
+            # print ("",self.Vehicle_Control_msg)
+            # self.BNG_pub.publish(self.Vehicle_Control_msg)
+
+
+
+
+    
+	def main_loop(self):
+		while not rospy.is_shutdown():
+			self.twist_msg_comparison()
+			# print(self.twist_msg_comparison)
+			if self.twist_msg_comparison:
+			    self.BNG_pub.publish(self.Vehicle_Control_msg)    
+
+			# print("",self.vehicle_state)
+			self.checker_rate.sleep()
+
+
+
+
+if __name__=="__main__":
+	rospy.init_node("twist_message_to_BeamNG")
+	twist2bng()
+	rospy.spin()
