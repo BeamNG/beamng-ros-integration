@@ -23,7 +23,6 @@ class twist2bng():
 		self.control_linear_vel=0
 		self.control_angular_vel=0
 		self.has_velosity=False
-		self.vehicle_state="initial"
 		self.main_loop()
 
 	# ------------- call back functions ---------------- #
@@ -37,20 +36,22 @@ class twist2bng():
 
 	def twist_msg_comparison(self):     
 		if self.control_linear_vel_old != self.control_linear_vel_new:
-		    # print ("new data")
-		    self.convert_cmd_to_bng(self.control_linear_vel_new,self.control_angular_vel_new)
+            # print ("new reading")
+		    print ("new data")
 		    self.control_linear_vel_old = self.control_linear_vel_new
+		    self.convert_cmd_to_bng(self.control_linear_vel_new,self.control_angular_vel_new)
 		    return True 
 
       
 		if self.control_angular_vel_old != self.control_angular_vel_new:
-		    # print ("new data")
-		    self.convert_cmd_to_bng(self.control_linear_vel_new,self.control_angular_vel_new)
+            # print ("new reading")
+		    print ("new data")
 		    self.control_angular_vel_old = self.control_angular_vel_new
+		    self.convert_cmd_to_bng(self.control_linear_vel_new,self.control_angular_vel_new)
 		    return True 
       
 		else:
-		    # print ("old data")
+		    print ("old data")
 		    return  False
       
             
@@ -62,7 +63,6 @@ class twist2bng():
 	def convert_cmd_to_bng(self,control_linear_vel,control_angular_vel):
             # print ("inside convert_cmd_to_bng")
             self.Vehicle_Control_msg=VehicleControl()
-            print ("",control_linear_vel)
            
             if control_linear_vel == 0.0 :    
                 self.Vehicle_Control_msg.throttle = 0.0
@@ -70,9 +70,8 @@ class twist2bng():
                 self.Vehicle_Control_msg.brake = 1
                 self.Vehicle_Control_msg.parkingbrake = 1 
                 self.Vehicle_Control_msg.clutch = 1
-                self.Vehicle_Control_msg.gear = 1
-                self.vehicle_state="stop"
-
+                self.Vehicle_Control_msg.gear = 0
+                
             if control_linear_vel < 0.0 :
                 self.Vehicle_Control_msg.throttle = abs(control_linear_vel)
                 self.Vehicle_Control_msg.steering = control_angular_vel
@@ -80,23 +79,40 @@ class twist2bng():
                 self.Vehicle_Control_msg.parkingbrake = 0 
                 self.Vehicle_Control_msg.clutch = 0
                 self.Vehicle_Control_msg.gear = -1
-                self.vehicle_state="reverse"
                 
-            else  :
+                
+            else :
                 self.Vehicle_Control_msg.throttle = abs(control_linear_vel)
                 self.Vehicle_Control_msg.steering = control_angular_vel
                 self.Vehicle_Control_msg.brake = 0
                 self.Vehicle_Control_msg.parkingbrake = 0 
                 self.Vehicle_Control_msg.clutch = 0
                 self.Vehicle_Control_msg.gear = 1
-                self.vehicle_state="go"
                 
-
-            
             # print ("",self.Vehicle_Control_msg)
             # self.BNG_pub.publish(self.Vehicle_Control_msg)
 
-
+	def move_from_terminal(self):
+            command= "rostopic pub -r 1 control beamng_msgs/VehicleControl "
+            throttle= self.Vehicle_Control_msg.throttle 
+            steering= self.Vehicle_Control_msg.steering 
+            brake= self.Vehicle_Control_msg.brake 
+            parkingbrake= self.Vehicle_Control_msg.parkingbrake  
+            clutch= self.Vehicle_Control_msg.clutch 
+            gear= self.Vehicle_Control_msg.gear 
+            combine = command + str(steering) + " "  + str(throttle) + " "  + str(brake) + " "  + str(parkingbrake) + " "  + str(clutch) + " "  + str(gear) 
+            # subprocess.run([combine], universal_newlines=True, shell=True)    
+            try:
+                print ("calling terminal")
+                print ("" , combine)
+                cp = subprocess.run([combine], universal_newlines=False, shell=False)
+            except :
+                print(" ------------------")
+                print(" ------------------")
+                print(" bridge error")
+                print(" ------------------")
+                print(" ------------------")
+	
 
 
     
@@ -106,8 +122,9 @@ class twist2bng():
 			# print(self.twist_msg_comparison)
 			if self.twist_msg_comparison:
 			    self.BNG_pub.publish(self.Vehicle_Control_msg)    
-
-			# print("",self.vehicle_state)
+			    # self.move_from_terminal()
+			# else:
+       
 			self.checker_rate.sleep()
 
 
