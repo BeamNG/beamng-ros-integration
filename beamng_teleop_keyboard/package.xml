@@ -6,8 +6,9 @@
     Provides teleoperation using keyboard to move the vehicles in BemaNG simulation using geometry messages 
   </description>
   <license>MIT</license>
-  <author email="info@beamng.gmbh">BeamNG GmbH</author>
-  <maintainer email="info@beamng.gmbh">BeamNG GmbH</maintainer>
+  <author>Abdul Rahman Saeed</author>
+  <maintainer email="tech@beamng.gmbh">BeamNG GmbH</maintainer>
+
   <buildtool_depend>catkin</buildtool_depend>
   <depend>rospy</depend>
   <depend>geometry_msgs</depend>

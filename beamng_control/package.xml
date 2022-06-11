@@ -4,7 +4,8 @@
   <version>0.0.0</version>
   <description>Package for BeamNG.tech integration via the BeamNGpy library.</description>
 
-  <maintainer email="info@beamng.gmbh">BeamNG GmbH</maintainer>
+  <author>Abdul Rahman Saeed</author>
+  <maintainer email="tech@beamng.gmbh">BeamNG GmbH</maintainer>
 
   <license>MIT</license>
 
