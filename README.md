@@ -40,6 +40,33 @@ It needs to be configured to contain the correct IP address of the machine hosti
 Using it will start up a node that connects to the simulation and starts up a scenario as defined in the `beamng_control/config/simple_scenario.json`.
 Other scenario specifications are available in the same directory.
 
+## Teleop control
+
+
+[beamng_teleop_keyboard](https://github.com/BeamNG/beamng-ros-integration/tree/master/beamng_teleop_keyboard) is a generic Keyboard Packages is built for teleoperating ROS robots using Twist message from [geometry_messages](https://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html). 
+ 
+#### Running beamng_teleop_keyboard: 
+- Loading BeamNG-ROS bridge:
+```
+roslaunch beamng_control example.launch
+```
+ 
+- Calling Twist_message converter node:
+```
+rosrun beamng_teleop_keyboard converter
+```
+ 
+- calling Teleop node:
+```
+rosrun beamng_teleop_keyboard teleop_key
+```
+ 
+- Loading beamng_agent node:
+```
+roslaunch beamng_agent example.launch 
+```
+
+
 ## Compatibility  
 
 Running the BeamNG ROS integration requires three individual software components, here is a list of compatible versions.
