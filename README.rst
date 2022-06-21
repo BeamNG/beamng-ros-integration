@@ -1,4 +1,5 @@
-Allah Allah test test allah
+Getting started
+
 ===================================
 
 **Lumache** (/lu'make/) is a Python library for cooks and food lovers
@@ -20,3 +21,5 @@ Contents
 
    usage
    api
+
+
