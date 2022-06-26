@@ -1,4 +1,4 @@
-Allah Allah test
+Welcome to BeamNG.tech ROS Integration's documentation!
 ===================================
 
 **Lumache** (/lu'make/) is a Python library for cooks and food lovers
