@@ -1,7 +1,9 @@
-BeamNG ROS Integration
-^^^^^^^^^^^^^^^^^^^^^^^^^
+ReadTheDocs
+===================================
 
-## About    
+# BeamNG ROS Integration
+
+## About
 
 This repository contains packages to support the interoperability between BeamNG.tech and ROS.
 BeamNG.tech is a driving simulation platform, suitable for commercial and academic use.
@@ -9,7 +11,7 @@ Free licenses are available for non-commercial and academic use.
 Inquiries can be made through our [registration form](https://register.beamng.tech/).
 For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
 
-## Features  
+## Features
 
 As of now the BeamNG ROS integration supports one package for the **remote** control of the simulation platform and one package for the control of a driving agent. A third package manages custom messages.
 
@@ -41,33 +43,6 @@ It needs to be configured to contain the correct IP address of the machine hosti
 Using it will start up a node that connects to the simulation and starts up a scenario as defined in the `beamng_control/config/simple_scenario.json`.
 Other scenario specifications are available in the same directory.
 
-## Teleop control
-
-
-[beamng_teleop_keyboard](https://github.com/BeamNG/beamng-ros-integration/tree/master/beamng_teleop_keyboard) is a generic Keyboard Packages is built for teleoperating ROS robots using Twist message from [geometry_messages](https://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html). 
- 
-#### Running beamng_teleop_keyboard: 
-- Loading BeamNG-ROS bridge:
-```
-roslaunch beamng_control example.launch
-```
- 
-- Calling Twist_message converter node:
-```
-rosrun beamng_teleop_keyboard converter
-```
- 
-- calling Teleop node:
-```
-rosrun beamng_teleop_keyboard teleop_key
-```
- 
-- Loading beamng_agent node:
-```
-roslaunch beamng_agent example.launch 
-```
-
-
 ## Compatibility  
 
 Running the BeamNG ROS integration requires three individual software components, here is a list of compatible versions.
@@ -77,3 +52,19 @@ Running the BeamNG ROS integration requires three individual software components
 | 0.25|1.23| 0.1 |
 
 [1]: https://github.com/BeamNG/BeamNGpy
+
+
+Check out the :doc:`usage` section for further information, including
+how to :ref:`installation` the project.
+
+.. note::
+
+   This project is under active development.
+
+Contents
+--------
+
+.. toctree::
+
+   usage
+   api
