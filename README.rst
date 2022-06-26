@@ -1,25 +1,9 @@
-Getting started
+Template for the Read the Docs tutorial
+=======================================
 
-===================================
+This GitHub template includes fictional Python library
+with some basic Sphinx docs.
 
-**Lumache** (/lu'make/) is a Python library for cooks and food lovers
-that creates recipes mixing random ingredients.
-It pulls data from the `Open Food Facts database <https://world.openfoodfacts.org/>`_
-and offers a *simple* and *intuitive* API.
+Read the tutorial here:
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
-
-.. note::
-
-   This project is under active development.
-
-Contents
---------
-
-.. toctree::
-
-   usage
-   api
-
-
+https://docs.readthedocs.io/en/stable/tutorial/
