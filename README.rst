@@ -1,6 +1,8 @@
-# BeamNG ROS Integration
+BeamNG ROS Integration
+^^^^^^^^^^^^^^^^^^^^^^^
 
-## About
+About
+=============
 
 This repository contains packages to support the interoperability between BeamNG.tech and ROS.
 BeamNG.tech is a driving simulation platform, suitable for commercial and academic use.
@@ -8,11 +10,12 @@ Free licenses are available for non-commercial and academic use.
 Inquiries can be made through our [registration form](https://register.beamng.tech/).
 For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
 
-## Features
-
+Features
+=============
 As of now the BeamNG ROS integration supports one package for the **remote** control of the simulation platform and one package for the control of a driving agent. A third package manages custom messages.
 
-## Prerequirements
+Prerequirements
+=============
 
 For using the BeamNG ROS integration, a BeamNG.tech build and a python environment with [BeamNGpy][1] installed are required.
 
@@ -21,7 +24,8 @@ That means that BeamNG.tech needs to run on a separate Windows machine, or that 
 
 The BeamNG ROS integration is compatible with the ROS 1 distributions Melodic Morenia and  Noetic Ninjemys.
 
-## Getting Started
+Getting Started
+=============
 
 To use this project, a basic knowledge of the BeamNG.tech simulator and the BeamNGpy is neccessary. We recommend to familiarize yourself first with [BeamNGpy][1] to get a basic understanding of the platform before using the BeamNG ROS Integration.
 
@@ -40,8 +44,8 @@ It needs to be configured to contain the correct IP address of the machine hosti
 Using it will start up a node that connects to the simulation and starts up a scenario as defined in the `beamng_control/config/simple_scenario.json`.
 Other scenario specifications are available in the same directory.
 
-## Teleop control
-
+Teleop control
+=============
 
 [beamng_teleop_keyboard](https://github.com/BeamNG/beamng-ros-integration/tree/master/beamng_teleop_keyboard) is a generic Keyboard Packages is built for teleoperating ROS robots using Twist message from [geometry_messages](https://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Twist.html). 
  
@@ -67,7 +71,8 @@ roslaunch beamng_agent example.launch
 ```
 
 
-## Compatibility  
+Compatibility
+=============
 
 Running the BeamNG ROS integration requires three individual software components, here is a list of compatible versions.
 
