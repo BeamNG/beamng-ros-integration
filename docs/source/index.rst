@@ -1,5 +1,5 @@
-
-# BeamNG ROS Integration
+BeamNG ROS Integration
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ## About    
 
