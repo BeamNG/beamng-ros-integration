@@ -1,6 +1,6 @@
 # BeamNG ROS Integration
 
-## About  
+## About    
 
 This repository contains packages to support the interoperability between BeamNG.tech and ROS.
 BeamNG.tech is a driving simulation platform, suitable for commercial and academic use.
