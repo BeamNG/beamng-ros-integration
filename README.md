@@ -8,7 +8,7 @@ Free licenses are available for non-commercial and academic use.
 Inquiries can be made through our [registration form](https://register.beamng.tech/).
 For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
 
-## Features
+## Features  
 
 As of now the BeamNG ROS integration supports one package for the **remote** control of the simulation platform and one package for the control of a driving agent. A third package manages custom messages.
 
