@@ -8,7 +8,7 @@ This repository contains packages to support the interoperability between BeamNG
 BeamNG.tech is a driving simulation platform, suitable for commercial and academic use.
 Free licenses are available for non-commercial and academic use.
 Inquiries can be made through our [registration form](https://register.beamng.tech/).
-For inquiries regarding commercial use, contact us at [licensing@beamng.com](licensing@beamng.com).
+For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
 
 Features
 =============
