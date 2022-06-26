@@ -8,7 +8,7 @@ This repository contains packages to support the interoperability between BeamNG
 BeamNG.tech is a driving simulation platform, suitable for commercial and academic use.
 Free licenses are available for non-commercial and academic use.
 Inquiries can be made through our [registration form](https://register.beamng.tech/).
-For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
+For inquiries regarding commercial use, contact us at [licensing@beamng.com](licensing@beamng.com).
 
 Features
 =============
@@ -36,9 +36,9 @@ See the [ROS tutorials](http://wiki.ros.org/ROS/Tutorials) for more information 
 
 A node connecting ROS to the simulation can then be started with the help of the `example.launch` file in the `beamng_control` package through the command:
 
-```shell
+``
 roslaunch beamng_control example.launch
-```
+``
 
 It needs to be configured to contain the correct IP address of the machine hosting the simulation.
 Using it will start up a node that connects to the simulation and starts up a scenario as defined in the `beamng_control/config/simple_scenario.json`.
@@ -51,24 +51,24 @@ Teleop control
  
 #### Running beamng_teleop_keyboard: 
 - Loading BeamNG-ROS bridge:
-```
+``
 roslaunch beamng_control example.launch
-```
+``
  
 - Calling Twist_message converter node:
-```
+``
 rosrun beamng_teleop_keyboard converter
-```
+``
  
 - calling Teleop node:
-```
+``
 rosrun beamng_teleop_keyboard teleop_key
-```
+``
  
 - Loading beamng_agent node:
-```
+``
 roslaunch beamng_agent example.launch 
-```
+``
 
 
 Compatibility
