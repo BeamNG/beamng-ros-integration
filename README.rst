@@ -37,9 +37,7 @@ See the `ROS tutorials <http://wiki.ros.org/ROS/Tutorials>`_ for more informatio
 
 A node connecting ROS to the simulation can then be started with the help of the `example.launch` file in the `beamng_control` package through the command:
 
-`
-roslaunch beamng_control example.launch
-`
+``roslaunch beamng_control example.launch``
 
 It needs to be configured to contain the correct IP address of the machine hosting the simulation.
 Using it will start up a node that connects to the simulation and starts up a scenario as defined in the `beamng_control/config/simple_scenario.json`.
@@ -54,24 +52,16 @@ Running beamng_teleop_keyboard:
 -------------
 - Loading BeamNG-ROS bridge:
 
-```
-roslaunch beamng_control example.launch
-```
+``roslaunch beamng_control example.launch``
  
 - Calling Twist_message converter node:
-`
-rosrun beamng_teleop_keyboard converter
-`
+``rosrun beamng_teleop_keyboard converter``
  
 - calling Teleop node:
-`
-rosrun beamng_teleop_keyboard teleop_key
-`
+``rosrun beamng_teleop_keyboard teleop_key``
  
 - Loading beamng_agent node:
-`
-roslaunch beamng_agent example.launch 
-`
+``roslaunch beamng_agent example.launch``
 
 
 Compatibility
