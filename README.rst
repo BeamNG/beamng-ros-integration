@@ -78,8 +78,10 @@ Compatibility
 
 Running the BeamNG ROS integration requires three individual software components, here is a list of compatible versions.
 
-| BeamNG.tech | BeamNGpy | BeamNG ROS Integration |
-|-------------|----------|------------------------|
-| 0.25|1.23| 0.1 |
++-------------+-----------+------------------------+
+| BeamNG.tech | BeamNGpy  | BeamNG ROS Integration |
++=============+===========+========================+
+| 0.25        |1.23       | 0.1                    |
++-------------+-----------+------------------------+
 
 [1]: https://github.com/BeamNG/BeamNGpy
