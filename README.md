@@ -19,7 +19,7 @@ For using the BeamNG ROS integration, a BeamNG.tech build and a python environme
 Note that BeamNG.tech **only runs on Window**, although Linux support is on its way.
 That means that BeamNG.tech needs to run on a separate Windows machine, or that ROS needs to run on on WSL.
 
-The BeamNG ROS integration is compatible with the ROS 1 distributions Melodic Morenia and  Noetic Ninjemys.
+The BeamNG ROS integration is compatible with the ROS 1 distributions Melodic Morenia and  Noetic Ninjemys.  
 
 ## Getting Started
 
