@@ -2,7 +2,7 @@
 
 ## About
 
-This repository contains packages to support the interoperability between BeamNG.tech and ROS.
+This repository contains packages to support the interoperability between [BeamNG.tech](https://beamng.tech/) and ROS.
 BeamNG.tech is a driving simulation platform, suitable for commercial and academic use.
 Free licenses are available for non-commercial and academic use.
 Inquiries can be made through our [registration form](https://register.beamng.tech/).
