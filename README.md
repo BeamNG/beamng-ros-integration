@@ -7,13 +7,24 @@ BeamNG.tech is a driving simulation platform, suitable for commercial and academ
 Free licenses are available for non-commercial and academic use.
 Inquiries can be made through our [registration form](https://register.beamng.tech/).
 For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
+## Table of Contents
 
+ - [Features](#features) 
+ - [Documentation](#docs)
+ - [Prerequirements](#prereqs)
+ - [Getting Started](#getstart)
+ - [Compatibility](#compatibility)
+ - [Troubleshooting](#troubleshooting)
+ 
+<a name="docs"></a>
 ## Documentation
 [![](https://raw.githubusercontent.com/ChristianBirchler/sdc-scissor/main/docs/images/readthedocs.png)](https://beamngpy.readthedocs.io/en/latest/bngros.html)
 
 ## Features
 
 As of now the BeamNG ROS integration supports one package for the **remote** control of the simulation platform and one package for the control of a driving agent. A third package manages custom messages.
+
+<a name="prereqs"></a>
 
 ## Prerequirements
 
@@ -23,6 +34,8 @@ Note that BeamNG.tech **only runs on Window**, although Linux support is on its 
 That means that BeamNG.tech needs to run on a separate Windows machine, or that ROS needs to run on on WSL.
 
 The BeamNG ROS integration is compatible with the ROS 1 distributions Melodic Morenia and  Noetic Ninjemys.  
+
+<a name="getstart"></a>
 
 ## Getting Started
 
@@ -51,4 +64,16 @@ Running the BeamNG ROS integration requires three individual software components
 |-------------|----------|------------------------|
 | 0.25|1.23| 0.1 |
 
+
+## Troubleshooting
+
+This section lists common issues with  BeamNG ROS Integration in particular. Since this
+library is closely tied to BeamNG.tech and thus BeamNG.drive, it is also
+recommended to consult the documentation on BeamNG.drive here:
+
+[https://documentation.beamng.com/][8]
+
+
+
 [1]: https://github.com/BeamNG/BeamNGpy
+[8]: https://documentation.beamng.com/
