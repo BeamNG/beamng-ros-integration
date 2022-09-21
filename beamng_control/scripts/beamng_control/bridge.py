@@ -383,7 +383,7 @@ def main():
                        f' version is {available_version}, aborting process.')
         sys.exit(1)
 
-   # bngpy.setup_logging()
+    bngpy.setup_logging()
 
     argv = rospy.myargv(argv=sys.argv)
     rospy.loginfo("cmd args"+str(argv))

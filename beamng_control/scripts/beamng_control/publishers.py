@@ -9,7 +9,7 @@ import geometry_msgs.msg as geom_msgs
 import std_msgs.msg
 
 import beamngpy.sensors as bng_sensors
-#from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
+from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
 
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -27,8 +27,8 @@ def get_sensor_publisher(sensor):
         bng_sensors.Electrics: ElectricsPublisher,
         bng_sensors.Camera: CameraPublisher,
         bng_sensors.Lidar: LidarPublisher,
-       # RandomImageNoise: CameraPublisher,
-       #s RandomLIDARNoise: LidarPublisher
+        RandomImageNoise: CameraPublisher,
+        RandomLIDARNoise: LidarPublisher
     }
     for k, v in sensor_mapping.items():
         if isinstance(sensor, k):

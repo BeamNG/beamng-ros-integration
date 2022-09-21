@@ -5,8 +5,6 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import String
-
 import sys, select, os
 if os.name == 'nt':
   import msvcrt
@@ -105,7 +103,6 @@ if __name__=="__main__":
 
     rospy.init_node('teleop')
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-    brakepub = rospy.Publisher('brake', String, queue_size=10)
     # BNG_pub =   rospy.Publisher('control', bng_msgs.VehicleControl ,queue_size=10)
     # BNG_pub =   rospy.Publisher('control', VehicleControl ,queue_size=10)
     # BNG_pub =   rospy.Publisher('control', BNG_msgs,queue_size=2)
@@ -117,7 +114,6 @@ if __name__=="__main__":
     target_angular_vel  = 0.0
     control_linear_vel  = 0.0
     control_angular_vel = 0.0
-    brake_state= "False"
 
     try:
         print(msg)
@@ -127,29 +123,24 @@ if __name__=="__main__":
                 target_linear_vel = checkLinearLimitVelocity(target_linear_vel + LIN_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
-                brake_state= "False"
             elif key == 'x' :
                 target_linear_vel = checkLinearLimitVelocity(target_linear_vel - LIN_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
-                brake_state= "False"
             elif key == 'd' :
                 target_angular_vel = checkAngularLimitVelocity(target_angular_vel + ANG_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
-                brake_state= "False"
             elif key == 'a' :
                 target_angular_vel = checkAngularLimitVelocity(target_angular_vel - ANG_VEL_STEP_SIZE)
                 status = status + 1
                 print(vels(target_linear_vel,target_angular_vel))
-                brake_state= "False"
             elif key == ' ' or key == 's' :
                 target_linear_vel   = 0.0
                 control_linear_vel  = 0.0
                 target_angular_vel  = 0.0
                 control_angular_vel = 0.0
                 print(vels(target_linear_vel, target_angular_vel))
-                brake_state= "True"
             else:
                 if (key == '\x03'):
                     break
@@ -167,7 +158,6 @@ if __name__=="__main__":
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
 
             pub.publish(twist)
-            brakepub.publish(brake_state)
             
     except:
         print(e)
