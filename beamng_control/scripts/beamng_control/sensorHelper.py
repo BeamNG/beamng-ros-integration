@@ -2,7 +2,7 @@ import rospy
 import copy
 
 import beamngpy.sensors as bng_sensors
-from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
+#from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
 
 
 class SensorSpecificationError(TypeError):
