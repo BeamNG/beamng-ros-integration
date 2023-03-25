@@ -17,7 +17,7 @@ import beamng_msgs.srv as bng_srv
 from beamng_control.publishers import VehiclePublisher, NetworkPublisher
 from beamng_control.sensorHelper import get_sensor
 
-MIN_BNG_VERSION_REQUIRED = '0.18.0'
+MIN_BNG_VERSION_REQUIRED = '1.25'
 NODE_NAME = 'beamng_control'
 
 
@@ -383,7 +383,7 @@ def main():
                        f' version is {available_version}, aborting process.')
         sys.exit(1)
 
-    # bngpy.setup_logging()
+   # bngpy.setup_logging()
 
     argv = rospy.myargv(argv=sys.argv)
     rospy.loginfo("cmd args"+str(argv))
