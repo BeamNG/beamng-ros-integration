@@ -10,7 +10,7 @@ import beamng_msgs.msg as bng_msgs
 from pathlib import Path
 from distutils.version import LooseVersion
 
-MIN_BNG_VERSION_REQUIRED = '1.25'
+MIN_BNG_VERSION_REQUIRED = '0.18.0'
 NODE_NAME = 'beamng_agent'
 
 class VehicleControl(object):
