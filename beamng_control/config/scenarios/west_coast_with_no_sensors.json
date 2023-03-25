@@ -9,14 +9,7 @@
       "name": "ego_vehicle",
       "model": "etk800",
       "position": [568.908, 13.422,  148.565],
-      "rotation": [0, 0, 0, 1],
-      "sensors": [
-        {
-          "name": "position_imu",
-          "type": "IMU",
-          "position": [0.73, 0.51, 0.8]
-        }
-      ]
+      "rotation": [0, 0, 0, 1]
     }
   ]
 }

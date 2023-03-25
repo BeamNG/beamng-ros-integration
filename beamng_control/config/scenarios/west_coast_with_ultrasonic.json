@@ -12,9 +12,10 @@
       "rotation": [0, 0, 0, 1],
       "sensors": [
         {
-          "name": "position_imu",
-          "type": "IMU",
-          "position": [0.73, 0.51, 0.8]
+          "name":"parking_sensor",
+          "type":"Ultrasonic.smallrange",
+          "position":[0, 1, 2],
+          "rotation":[0, 1, 0]
         }
       ]
     }

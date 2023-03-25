@@ -11,10 +11,18 @@
       "position": [568.908, 13.422,  148.565],
       "rotation": [0, 0, 0, 1],
       "sensors": [
+
         {
-          "name": "position_imu",
-          "type": "IMU",
-          "position": [0.73, 0.51, 0.8]
+          "name":"damage0",
+          "type":"Damage"
+        },
+        {
+          "name":"gforce0",
+          "type":"GForces"
+        },
+        {
+          "name":"time0",
+          "type":"Timer"
         }
       ]
     }
