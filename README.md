@@ -9,8 +9,9 @@ Inquiries can be made through our [registration form](https://register.beamng.te
 For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
 ## Table of Contents
 
- - [Features](#features) 
+
  - [Documentation](#docs)
+ - [Features](#features) 
  - [Prerequirements](#prereqs)
  - [Getting Started](#getstart)
  - [Compatibility](#compatibility)
