@@ -12,6 +12,7 @@ Welcome to BeamNG.tech ROS Integration's documentation!
 
    readme.rst
    modules.rst
+   simulink.rst
 
 
 
