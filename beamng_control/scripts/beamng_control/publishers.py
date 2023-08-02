@@ -391,9 +391,9 @@ class LidarPublisher(SensorDataPublisher):
         rospy.logdebug(f'sensor_msgs.msg.PointCloud2: {sensor_msgs.msg.PointCloud2}')
 
     def _make_msg(self):
-        points = self._sensor.data['points']
-        point_num = points.shape[0]//3
-        points = points.reshape(point_num, 3)
+        readings_data = self._sensor.poll()
+        points = readings_data['pointCloud']
+        # colours = readings_data['colours']
         header = std_msgs.msg.Header()
         header.frame_id = 'map'
         header.stamp = rospy.get_rostime()

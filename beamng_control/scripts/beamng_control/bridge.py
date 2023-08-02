@@ -106,7 +106,7 @@ class BeamNGBridge(object):
         self._marker_idx += 1
         return m
 
-    def get_sensor_from_dict(self, vehicle):
+    def get_sensor_from_dict(self, v_spec, vehicle):
         sensor_collection = list()
         noise_sensors = list()
         if 'sensors' in v_spec:
@@ -124,7 +124,7 @@ class BeamNGBridge(object):
             sensor = get_sensor(s_type,
                                 self._sensor_defs,
                                 dyn_sensor_properties=s_spec)
-            vehicle.attach_sensor(s_name, sensor)
+            # vehicle.attach_sensor(s_name, sensor)
         for n_spec in noise_sensors:
             n_name = n_spec.pop('name')
             n_type = n_spec.pop('type')
@@ -138,7 +138,7 @@ class BeamNGBridge(object):
             noise = get_sensor(n_type,
                                self._sensor_defs,
                                dyn_sensor_properties=n_spec)
-            vehicle.attach_sensor(n_name, noise)
+            # vehicle.attach_sensor(n_name, noise)
             return
 
     @staticmethod
@@ -183,18 +183,19 @@ class BeamNGBridge(object):
         if net_viz_key in scenario_spec and scenario_spec[net_viz_key] == 'on':
             self._publishers.append(NetworkPublisher(self.game_client,
                                                      NODE_NAME))
-        return scenario, on_scenario_start
+        return scenario, on_scenario_start, vehicle
 
     def start_scenario(self, file_name):
         self._publishers = list()
         scenario_spec = self._scenario_from_json(file_name)
         if not scenario_spec:
             return
-        scenario, on_scenario_start = self.decode_scenario(scenario_spec)
+        scenario, on_scenario_start, vehicle = self.decode_scenario(scenario_spec)
         scenario.make(self.game_client)
         self.game_client.load_scenario(scenario)
         self.game_client.start_scenario()
         # todo: add the lidar here
+
         for hook in on_scenario_start:
             hook()
 
