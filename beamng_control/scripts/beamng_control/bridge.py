@@ -157,13 +157,17 @@ class BeamNGBridge(object):
             rospy.logdebug(f'sensors_automation: {sensor_collection}')
             rospy.logdebug(f'noise_automation: {noise_sensors}')
             for s_spec in sensor_collection:
+                dyn_spec = s_spec
+                dyn_spec["name"].pop()
+                dyn_spec["type"].pop()
                 s_type = s_spec["type"]
+
                 rospy.logdebug(f'Attempting to set up {s_type} sensor.')
                 _, sensor_type = get_sensor(self.game_client,
                                             vehicle,
                                             s_type,
                                             self._sensor_defs,
-                                            dyn_sensor_properties=s_spec)
+                                            dyn_sensor_properties=dyn_spec)
                 self._publishers.append(get_sensor_publisher[sensor_type])
             # for n_spec in noise_sensors:
             #     n_name = n_spec.pop('name')

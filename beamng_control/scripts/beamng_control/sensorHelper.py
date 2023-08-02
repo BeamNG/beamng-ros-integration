@@ -20,6 +20,7 @@ def get_lidar(bng,
               vertical_resolution,
               vertical_angle,
               max_distance,
+              vehicle,
               **spec):
     # rospy.logdebug('Lidar visualization cannot '
     #                'be enabled through the beamng ros integration')
@@ -30,6 +31,7 @@ def get_lidar(bng,
                       'sensor data is always shared through sockets.')
     try:
         _ = bng_sensors.Lidar(bng=bng,
+                              vehicle=vehicle,
                               pos=position,
                               dir=direction,
                               vertical_resolution=vertical_resolution,
@@ -159,7 +161,7 @@ def select_sensor_definition(sensor_type_name, sensor_defs):
     return sensor_type[0], sensor_spec
 
 
-def get_sensor(bng, sensor_type, all_sensor_defs, dyn_sensor_properties=None):
+def get_sensor(bng, sensor_type, all_sensor_defs, vehicle=None, dyn_sensor_properties=None):
     """
     Args:
     sensor_type(string): used to look up static part of sensor definition
@@ -180,7 +182,7 @@ def get_sensor(bng, sensor_type, all_sensor_defs, dyn_sensor_properties=None):
     rospy.logdebug(f'sensor_def: {sensor_def}')
     try:
         if sensor_class_name in _automation_sensors:
-            sensor = _sensor_getters[sensor_class_name](bng, **sensor_def)
+            sensor = _sensor_getters[sensor_class_name](bng, vehicle, **sensor_def)
         else:
             sensor = _sensor_getters[sensor_class_name](**sensor_def)
         sensor_type = _sensor_getters[sensor_class_name]
