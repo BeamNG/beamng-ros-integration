@@ -14,7 +14,7 @@ import beamngpy as bngpy
 import beamng_msgs.msg as bng_msgs
 import beamng_msgs.srv as bng_srv
 
-from beamng_control.publishers import VehiclePublisher, NetworkPublisher
+from beamng_control.publishers import VehiclePublisher, NetworkPublisher, get_sensor_publisher
 from beamng_control.sensorHelper import get_sensor
 
 MIN_BNG_VERSION_REQUIRED = '0.18.0'
@@ -106,25 +106,27 @@ class BeamNGBridge(object):
         self._marker_idx += 1
         return m
 
-    def get_sensor_from_dict(self, v_spec, vehicle):
+    def get_sensor_classical_from_dict(self, v_spec, vehicle):
         sensor_collection = list()
         noise_sensors = list()
-        if 'sensors' in v_spec:
-            for spec in v_spec['sensors']:
+        if 'sensors_classical' in v_spec:
+            for spec in v_spec['sensors_classical']:
                 if 'base sensor' in spec:
                     noise_sensors.append(spec)
                 else:
                     sensor_collection.append(spec)
-        rospy.logdebug(f'sensors: {sensor_collection}')
-        rospy.logdebug(f'noise: {noise_sensors}')
+        rospy.logdebug(f'sensors_classical: {sensor_collection}')
+        rospy.logdebug(f'noise_classical: {noise_sensors}')
         for s_spec in sensor_collection:
             s_name = s_spec.pop('name')
             s_type = s_spec.pop('type')
             rospy.logdebug(f'Attempting to set up {s_type} sensor.')
-            sensor = get_sensor(s_type,
+            sensor = get_sensor(self.game_client,
+                                vehicle,
+                                s_type,
                                 self._sensor_defs,
                                 dyn_sensor_properties=s_spec)
-            # vehicle.attach_sensor(s_name, sensor)
+            vehicle.attach_sensor(s_name, sensor)
         for n_spec in noise_sensors:
             n_name = n_spec.pop('name')
             n_type = n_spec.pop('type')
@@ -135,11 +137,48 @@ class BeamNGBridge(object):
                 rospy.logerr(f'Could not find sensor with id {sensor} to '
                              f'generate noise sensor of type {n_type}')
             n_spec['sensor'] = sensor
-            noise = get_sensor(n_type,
+            noise = get_sensor(self.game_client,
+                               n_type,
                                self._sensor_defs,
                                dyn_sensor_properties=n_spec)
-            # vehicle.attach_sensor(n_name, noise)
-            return
+            vehicle.attach_sensor(n_name, noise)
+        return vehicle
+
+    def set_sensor_automation_from_dict(self, scenario_spec, vehicle_list):
+        for v_spec, vehicle in zip(scenario_spec['vehicles'], vehicle_list):
+            sensor_collection = list()
+            noise_sensors = list()
+            if 'sensors_automation' in v_spec:
+                for spec in v_spec['sensors_automation']:
+                    if 'base sensor' in spec:
+                        noise_sensors.append(spec)
+                    else:
+                        sensor_collection.append(spec)
+            rospy.logdebug(f'sensors_automation: {sensor_collection}')
+            rospy.logdebug(f'noise_automation: {noise_sensors}')
+            for s_spec in sensor_collection:
+                s_type = s_spec["type"]
+                rospy.logdebug(f'Attempting to set up {s_type} sensor.')
+                _, sensor_type = get_sensor(self.game_client,
+                                            vehicle,
+                                            s_type,
+                                            self._sensor_defs,
+                                            dyn_sensor_properties=s_spec)
+                self._publishers.append(get_sensor_publisher[sensor_type])
+            # for n_spec in noise_sensors:
+            #     n_name = n_spec.pop('name')
+            #     n_type = n_spec.pop('type')
+            #     sensor = n_spec.pop('base sensor')
+            #     if sensor in vehicle.sensors:
+            #         sensor = vehicle.sensors[sensor]
+            #     else:
+            #         rospy.logerr(f'Could not find sensor with id {sensor} to '
+            #                      f'generate noise sensor of type {n_type}')
+            #     n_spec['sensor'] = sensor
+            #     noise = get_sensor(n_type,
+            #                        self._sensor_defs,
+            #                        dyn_sensor_properties=n_spec)
+            #     vehicle.attach_sensor(n_name, noise)
 
     @staticmethod
     def get_vehicle_from_dict(v_spec):
@@ -157,15 +196,19 @@ class BeamNGBridge(object):
         return scenario_spec
 
     def decode_scenario(self, scenario_spec):
+        vehicle_list = list()
         scenario = bngpy.Scenario(scenario_spec.pop('level'),
                                   scenario_spec.pop('name'))
 
         for v_spec in scenario_spec['vehicles']:
             vehicle = self.get_vehicle_from_dict(v_spec)
+            # set up classical sensors
+            vehicle = self.get_sensor_classical_from_dict(v_spec, vehicle)
             self._publishers.append(VehiclePublisher(vehicle, NODE_NAME))  # todo markers need to be added somwhere else
             scenario.add_vehicle(vehicle,
                                  pos=v_spec['position'],
                                  rot_quat=v_spec['rotation'])
+            vehicle_list.append(vehicle)
 
         on_scenario_start = list()
         wp_key = 'weather_presets'
@@ -183,19 +226,19 @@ class BeamNGBridge(object):
         if net_viz_key in scenario_spec and scenario_spec[net_viz_key] == 'on':
             self._publishers.append(NetworkPublisher(self.game_client,
                                                      NODE_NAME))
-        return scenario, on_scenario_start, vehicle
+        return scenario, on_scenario_start, vehicle_list
 
     def start_scenario(self, file_name):
         self._publishers = list()
         scenario_spec = self._scenario_from_json(file_name)
         if not scenario_spec:
             return
-        scenario, on_scenario_start, vehicle = self.decode_scenario(scenario_spec)
+        scenario, on_scenario_start, vehicle_list = self.decode_scenario(scenario_spec)
         scenario.make(self.game_client)
         self.game_client.load_scenario(scenario)
         self.game_client.start_scenario()
-        # todo: add the lidar here
-
+        # Automation sensors need to be set up after the scenario starts
+        self.set_sensor_automation_from_dict(scenario_spec, vehicle_list)
         for hook in on_scenario_start:
             hook()
 

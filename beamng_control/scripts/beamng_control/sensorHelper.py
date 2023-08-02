@@ -21,22 +21,22 @@ def get_lidar(bng,
               vertical_angle,
               max_distance,
               **spec):
-    rospy.logdebug('Lidar visualization cannot '
-                   'be enabled through the beamng ros integration')
-    spec['visualized'] = False
+    # rospy.logdebug('Lidar visualization cannot '
+    #                'be enabled through the beamng ros integration')
+    # spec['visualized'] = False
     if 'shmem' in spec and spec['shmem']:
         spec.pop('shmem')
         rospy.logwarn('The Lidar sensor provides no shared memory support, '
                       'sensor data is always shared through sockets.')
     try:
-        lidar = bng_sensors.Lidar(bng=bng,
-                                  pos=position,
-                                  dir=direction,
-                                  vertical_resolution=vertical_resolution,
-                                  vertical_angle=vertical_angle,
-                                  max_distance=max_distance,
-                                  is_using_shared_memory=False,
-                                  **spec)
+        _ = bng_sensors.Lidar(bng=bng,
+                              pos=position,
+                              dir=direction,
+                              vertical_resolution=vertical_resolution,
+                              vertical_angle=vertical_angle,
+                              max_distance=max_distance,
+                              is_using_shared_memory=False,
+                              **spec)
     except TypeError as e:
         raise SensorSpecificationError('Could not get Lidar instance, the '
                                        'json specification provided an'
@@ -44,7 +44,7 @@ def get_lidar(bng,
                                        f'unexpected inputs:\n{spec}\n'
                                        'Original error '
                                        f'message:\n{e}')
-    return lidar
+    # return lidar  # perhaps we need this to politely close the sensor
 
 
 def get_imu(position=None, node=None, **spec):
@@ -159,7 +159,7 @@ def select_sensor_definition(sensor_type_name, sensor_defs):
     return sensor_type[0], sensor_spec
 
 
-def get_sensor(sensor_type, all_sensor_defs, dyn_sensor_properties=None):
+def get_sensor(bng, sensor_type, all_sensor_defs, dyn_sensor_properties=None):
     """
     Args:
     sensor_type(string): used to look up static part of sensor definition
@@ -179,15 +179,30 @@ def get_sensor(sensor_type, all_sensor_defs, dyn_sensor_properties=None):
         sensor_def.update(dyn_sensor_properties)
     rospy.logdebug(f'sensor_def: {sensor_def}')
     try:
-        sensor = _sensor_getters[sensor_class_name](**sensor_def)
+        if sensor_class_name in _automation_sensors:
+            sensor = _sensor_getters[sensor_class_name](bng, **sensor_def)
+        else:
+            sensor = _sensor_getters[sensor_class_name](**sensor_def)
+        sensor_type = _sensor_getters[sensor_class_name]
     except TypeError as err:
         raise SensorSpecificationError(f'The {sensor_class_name} sensor '
                                        'definition is missing one or more '
                                        'fields. These fields '
                                        f'where defined:\n{sensor_def}\n'
                                        f'Original error message:\n{err}')
-    return sensor
+    return sensor, sensor_type
 
+
+_automation_sensors = ['Camera',
+                       'Lidar',
+                       'CameraNoise',
+                       'LidarNoise',
+                       'Ultrasonic',
+                       'AdvancedIMU',  # unsure about this one
+                       'PowerTrain',  # unsure about this one
+                       'Radar',  # unsure about this one
+                       'meshsensor',  # unsure about this one
+                       ]
 
 _sensor_getters = {
     'IMU': get_imu,

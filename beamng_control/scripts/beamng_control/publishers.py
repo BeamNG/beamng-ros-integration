@@ -457,6 +457,7 @@ class VehiclePublisher(BNGPublisher):
 
     def publish(self):
         self._vehicle.poll_sensors()
+        # todo: we really want a TF frame for this
         for pub in self._sensor_publishers:
             pub.publish()
         if self.visualizer is not None:
