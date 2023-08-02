@@ -2,7 +2,9 @@ import rospy
 import copy
 
 import beamngpy.sensors as bng_sensors
-#from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
+
+
+# from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
 
 
 class SensorSpecificationError(TypeError):
@@ -12,7 +14,8 @@ class SensorSpecificationError(TypeError):
     pass
 
 
-def get_lidar(position,
+def get_lidar(bng,
+              position,
               direction,
               vertical_resolution,
               vertical_angle,
@@ -26,12 +29,13 @@ def get_lidar(position,
         rospy.logwarn('The Lidar sensor provides no shared memory support, '
                       'sensor data is always shared through sockets.')
     try:
-        lidar = bng_sensors.Lidar(offset=position,
-                                  direction=direction,
-                                  vres=vertical_resolution,
-                                  vangle=vertical_angle,
-                                  max_dist=max_distance,
-                                  shmem=False,
+        lidar = bng_sensors.Lidar(bng=bng,
+                                  pos=position,
+                                  dir=direction,
+                                  vertical_resolution=vertical_resolution,
+                                  vertical_angle=vertical_angle,
+                                  max_distance=max_distance,
+                                  is_using_shared_memory=False,
                                   **spec)
     except TypeError as e:
         raise SensorSpecificationError('Could not get Lidar instance, the '
@@ -103,7 +107,7 @@ def get_camera(position, rotation, fov, resolution, **spec):
                                        f'unexpected inputs:\n{spec}\n'
                                        '\nOriginal error '
                                        f'message:\n{e}')
-    if bbox and not(cam.instance and cam.annotation):
+    if bbox and not (cam.instance and cam.annotation):
         rospy.logerr('Enabled annotations and instance annotations'
                      'are required to generate images with bounding box.')
     else:

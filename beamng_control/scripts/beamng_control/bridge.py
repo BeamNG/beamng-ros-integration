@@ -24,7 +24,7 @@ NODE_NAME = 'beamng_control'
 def load_json(file_name):
     pkg_path = rospkg.RosPack().get_path(NODE_NAME)
     file_path = Path(file_name).resolve()
-    relative_fp = Path(str(pkg_path)+'/'+str(file_path))
+    relative_fp = Path(str(pkg_path) + '/' + str(file_path))
     if not file_path.is_file() and relative_fp.is_file():
         file_path = relative_fp
     with file_path.open('r') as fh:
@@ -64,7 +64,7 @@ class BeamNGBridge(object):
         sensor_paths = default_path if not sensor_paths else sensor_paths
         print("------------")
         print("------------")
-        print ("sensor_paths",sensor_paths)
+        print("sensor_paths", sensor_paths)
         print("------------")
         print("------------")
         sensor_defs = dict()
@@ -106,8 +106,7 @@ class BeamNGBridge(object):
         self._marker_idx += 1
         return m
 
-    def get_vehicle_from_dict(self, v_spec):
-        vehicle = bngpy.Vehicle(v_spec['name'], v_spec['model'])
+    def get_sensor_from_dict(self, vehicle):
         sensor_collection = list()
         noise_sensors = list()
         if 'sensors' in v_spec:
@@ -140,9 +139,15 @@ class BeamNGBridge(object):
                                self._sensor_defs,
                                dyn_sensor_properties=n_spec)
             vehicle.attach_sensor(n_name, noise)
+            return
+
+    @staticmethod
+    def get_vehicle_from_dict(v_spec):
+        vehicle = bngpy.Vehicle(v_spec['name'], v_spec['model'])
         return vehicle
 
-    def _scenario_from_json(self, file_name):
+    @staticmethod
+    def _scenario_from_json(file_name):
         try:
             scenario_spec = load_json(file_name)
         except FileNotFoundError:
@@ -158,7 +163,8 @@ class BeamNGBridge(object):
         for v_spec in scenario_spec['vehicles']:
             vehicle = self.get_vehicle_from_dict(v_spec)
             self._publishers.append(VehiclePublisher(vehicle, NODE_NAME))  # todo markers need to be added somwhere else
-            scenario.add_vehicle(vehicle, pos=v_spec['position'],
+            scenario.add_vehicle(vehicle,
+                                 pos=v_spec['position'],
                                  rot_quat=v_spec['rotation'])
 
         on_scenario_start = list()
@@ -166,10 +172,12 @@ class BeamNGBridge(object):
         if wp_key in scenario_spec.keys():
             def weather_presets():
                 self.game_client.set_weather_preset(scenario_spec[wp_key])
+
             on_scenario_start.append(weather_presets)
         if 'time_of_day' in scenario_spec.keys():
             def tod():
                 self.game_client.set_tod(scenario_spec['time_of_day'])
+
             on_scenario_start.append(tod)
         net_viz_key = 'network_vizualization'
         if net_viz_key in scenario_spec and scenario_spec[net_viz_key] == 'on':
@@ -186,7 +194,7 @@ class BeamNGBridge(object):
         scenario.make(self.game_client)
         self.game_client.load_scenario(scenario)
         self.game_client.start_scenario()
-
+        # todo: add the lidar here
         for hook in on_scenario_start:
             hook()
 
@@ -311,9 +319,9 @@ class BeamNGBridge(object):
         feedback = bng_msgs.StepFeedback()
 
         step_counter = 0
-        imax = goal.total_number_of_steps//goal.feedback_cycle_size
+        imax = goal.total_number_of_steps // goal.feedback_cycle_size
         rest = goal.total_number_of_steps % goal.feedback_cycle_size
-        imax = imax+1 if rest else imax
+        imax = imax + 1 if rest else imax
 
         for i in range(0, imax):
             if self._stepAS.is_preempt_requested():
@@ -323,7 +331,7 @@ class BeamNGBridge(object):
                               f"{step_counter}/{goal.total_number_of_steps} "
                               "steps")
                 break
-            steps_to_finish = goal.total_number_of_steps-step_counter
+            steps_to_finish = goal.total_number_of_steps - step_counter
             step_size = min(steps_to_finish, goal.feedback_cycle_size)
             self.game_client.step(step_size)
             step_counter += step_size
@@ -383,10 +391,10 @@ def main():
                        f' version is {available_version}, aborting process.')
         sys.exit(1)
 
-   # bngpy.setup_logging()
+    # bngpy.setup_logging()
 
     argv = rospy.myargv(argv=sys.argv)
-    rospy.loginfo("cmd args"+str(argv))
+    rospy.loginfo("cmd args" + str(argv))
 
     params = rospy.get_param("beamng")
     if not ('host' in params.keys() and 'port' in params.keys()):
