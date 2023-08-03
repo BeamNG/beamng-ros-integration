@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import rospy
+import tf2_ros
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 
@@ -407,6 +408,8 @@ class VehiclePublisher(BNGPublisher):
                  node_name,
                  visualize=True):
         self._vehicle = vehicle
+        self._broadcaster_pose = tf2_ros.TransformBroadcaster()
+        self.node_name = node_name
         self._sensor_publishers = list()
         for sensor_name, sensor in vehicle.sensors.items():
             topic_id = [node_name, vehicle.vid, sensor_name]
@@ -418,6 +421,7 @@ class VehiclePublisher(BNGPublisher):
             else:
                 pub = pub(sensor, topic_id)
             self._sensor_publishers.append(pub)
+
         self.visualizer = None
         if visualize:
             topic_id = [node_name, vehicle.vid, 'marker']
@@ -426,7 +430,25 @@ class VehiclePublisher(BNGPublisher):
                                               Marker,
                                               queue_size=1)
 
-    def state_to_marker(self, data, marker_ns):
+    def broadcast_vehicle_pose(self, data):
+        t = tf2_ros.TransformStamped()
+
+        t.header.stamp = rospy.Time.now()
+        t.header.frame_id = 'map'
+        t.child_frame_id = self.node_name
+
+        t.transform.translation.x = data['pos'][0]
+        t.transform.translation.y = data['pos'][1]
+        t.transform.translation.z = data['pos'][2]
+
+        t.transform.rotation.x = data['rotation'][0]
+        t.transform.rotation.y = data['rotation'][1]
+        t.transform.rotation.z = data['rotation'][2]
+        t.transform.rotation.w = data['rotation'][3]
+        self._broadcaster_pose.sendTransform(t)
+
+    @staticmethod
+    def state_to_marker(data, marker_ns):
         mark = Marker()
         mark.header.frame_id = 'map'
         mark.header.stamp = rospy.Time.now()
@@ -457,7 +479,7 @@ class VehiclePublisher(BNGPublisher):
 
     def publish(self):
         self._vehicle.poll_sensors()
-        # todo: we really want a TF frame for this
+        self.broadcast_vehicle_pose(self._vehicle.sensors['state'].data)
         for pub in self._sensor_publishers:
             pub.publish()
         if self.visualizer is not None:
