@@ -9,7 +9,7 @@ import geometry_msgs.msg as geom_msgs
 import std_msgs.msg
 
 import beamngpy.sensors as bng_sensors
-#from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
+# from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
 
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -27,8 +27,8 @@ def get_sensor_publisher(sensor):
         bng_sensors.Electrics: ElectricsPublisher,
         bng_sensors.Camera: CameraPublisher,
         bng_sensors.Lidar: LidarPublisher,
-       # RandomImageNoise: CameraPublisher,
-       #s RandomLIDARNoise: LidarPublisher
+        # RandomImageNoise: CameraPublisher,
+        # s RandomLIDARNoise: LidarPublisher
     }
     for k, v in sensor_mapping.items():
         if isinstance(sensor, k):
@@ -149,11 +149,11 @@ class IMUPublisher(SensorDataPublisher):
         data = self._sensor.data
         msg = sensor_msgs.msg.Imu()
         msg.orientation = geom_msgs.Quaternion(0, 0, 0, 0)
-        msg.orientation_covariance = [-1, ]*9
+        msg.orientation_covariance = [-1, ] * 9
         msg.angular_velocity = geom_msgs.Vector3(*[data[x] for x in ['aX', 'aY', 'aZ']])
-        msg.angular_velocity_covariance = [-1, ]*9
+        msg.angular_velocity_covariance = [-1, ] * 9
         msg.linear_acceleration = geom_msgs.Vector3(*[data[x] for x in ['gX', 'gY', 'gZ']])
-        msg.linear_acceleration_covariance = [-1, ]*9
+        msg.linear_acceleration_covariance = [-1, ] * 9
         return msg
 
 
@@ -292,7 +292,7 @@ class DepthImgPublisher(SensorDataPublisher):
         data = self._sensor.data
         img = data['depth']
         near, far = self._sensor.near_far
-        img = (np.array(img)-near)/far*255
+        img = (np.array(img) - near) / far * 255
         img = img.astype(np.uint8)
         try:
             img = self._cv_helper.cv2_to_imgmsg(img, 'mono8')
@@ -388,7 +388,7 @@ class LidarPublisher(SensorDataPublisher):
 
     def __init__(self, sensor, topic_id):
         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
-        rospy.logdebug(f'sensor_msgs.msg.PointCloud2: {sensor_msgs.msg.PointCloud2}')
+        rospy.logwarn(f'sensor_msgs.msg.PointCloud2: {sensor_msgs.msg.PointCloud2}')
 
     def _make_msg(self):
         readings_data = self._sensor.poll()

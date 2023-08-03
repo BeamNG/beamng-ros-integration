@@ -17,9 +17,9 @@
     "default": {
       "vertical_resolution": 32,
       "vertical_angle": 26.9,
-      "rps": 2200000,
-      "hz": 20,
-      "angle": 360,
+      "rays_per_second": 2200000,
+      "frequency": 20,
+      "horizontal_angle": 360,
       "max_distance": 10,
       "direction": [0, -1, 0]
     }

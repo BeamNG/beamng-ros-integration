@@ -3,6 +3,7 @@
 
 import sys
 import json
+import copy
 from pathlib import Path
 from distutils.version import LooseVersion
 
@@ -157,18 +158,21 @@ class BeamNGBridge(object):
             rospy.logdebug(f'sensors_automation: {sensor_collection}')
             rospy.logdebug(f'noise_automation: {noise_sensors}')
             for s_spec in sensor_collection:
-                dyn_spec = s_spec
-                dyn_spec["name"].pop()
-                dyn_spec["type"].pop()
+                dyn_spec = copy.deepcopy(s_spec)
+                dyn_spec.pop("name")
+                dyn_spec.pop("type")
                 s_type = s_spec["type"]
+                name = s_spec["name"]
 
                 rospy.logdebug(f'Attempting to set up {s_type} sensor.')
-                _, sensor_type = get_sensor(self.game_client,
-                                            vehicle,
-                                            s_type,
-                                            self._sensor_defs,
-                                            dyn_sensor_properties=dyn_spec)
-                self._publishers.append(get_sensor_publisher[sensor_type])
+                sensor, sensor_publisher = get_sensor(s_type,
+                                                      self._sensor_defs,
+                                                      bng=self.game_client,
+                                                      vehicle=vehicle,
+                                                      name=name,
+                                                      dyn_sensor_properties=dyn_spec)
+                if sensor_publisher is not None:
+                    self._publishers.append(sensor_publisher(sensor, NODE_NAME))
             # for n_spec in noise_sensors:
             #     n_name = n_spec.pop('name')
             #     n_type = n_spec.pop('type')

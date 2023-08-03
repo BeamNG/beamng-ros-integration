@@ -2,6 +2,7 @@ import rospy
 import copy
 
 import beamngpy.sensors as bng_sensors
+from beamng_control.publishers import LidarPublisher
 
 
 # from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
@@ -15,12 +16,12 @@ class SensorSpecificationError(TypeError):
 
 
 def get_lidar(bng,
+              vehicle,
               position,
               direction,
               vertical_resolution,
               vertical_angle,
               max_distance,
-              vehicle,
               **spec):
     # rospy.logdebug('Lidar visualization cannot '
     #                'be enabled through the beamng ros integration')
@@ -30,7 +31,7 @@ def get_lidar(bng,
         rospy.logwarn('The Lidar sensor provides no shared memory support, '
                       'sensor data is always shared through sockets.')
     try:
-        _ = bng_sensors.Lidar(bng=bng,
+        lidar = bng_sensors.Lidar(bng=bng,
                               vehicle=vehicle,
                               pos=position,
                               dir=direction,
@@ -46,7 +47,7 @@ def get_lidar(bng,
                                        f'unexpected inputs:\n{spec}\n'
                                        'Original error '
                                        f'message:\n{e}')
-    # return lidar  # perhaps we need this to politely close the sensor
+    return lidar
 
 
 def get_imu(position=None, node=None, **spec):
@@ -161,7 +162,7 @@ def select_sensor_definition(sensor_type_name, sensor_defs):
     return sensor_type[0], sensor_spec
 
 
-def get_sensor(bng, sensor_type, all_sensor_defs, vehicle=None, dyn_sensor_properties=None):
+def get_sensor(sensor_type, all_sensor_defs, bng=None, vehicle=None, name=None, dyn_sensor_properties=None):
     """
     Args:
     sensor_type(string): used to look up static part of sensor definition
@@ -182,17 +183,21 @@ def get_sensor(bng, sensor_type, all_sensor_defs, vehicle=None, dyn_sensor_prope
     rospy.logdebug(f'sensor_def: {sensor_def}')
     try:
         if sensor_class_name in _automation_sensors:
-            sensor = _sensor_getters[sensor_class_name](bng, vehicle, **sensor_def)
+            sensor = _sensor_getters[sensor_class_name](bng=bng,
+                                                        name=name,
+                                                        vehicle=vehicle,
+                                                        **sensor_def)
+            sensor_publisher = _sensor_automation_type_publisher_getter[sensor_class_name]
         else:
             sensor = _sensor_getters[sensor_class_name](**sensor_def)
-        sensor_type = _sensor_getters[sensor_class_name]
+            sensor_publisher = None
     except TypeError as err:
         raise SensorSpecificationError(f'The {sensor_class_name} sensor '
                                        'definition is missing one or more '
                                        'fields. These fields '
                                        f'where defined:\n{sensor_def}\n'
                                        f'Original error message:\n{err}')
-    return sensor, sensor_type
+    return sensor, sensor_publisher
 
 
 _automation_sensors = ['Camera',
@@ -205,6 +210,9 @@ _automation_sensors = ['Camera',
                        'Radar',  # unsure about this one
                        'meshsensor',  # unsure about this one
                        ]
+_sensor_automation_type_publisher_getter = {
+    'Lidar': LidarPublisher
+}
 
 _sensor_getters = {
     'IMU': get_imu,
