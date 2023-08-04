@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 import rospy
+import ros_numpy
+from sensor_msgs.point_cloud2 import PointCloud2
+import tf2_ros
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 
@@ -392,12 +395,26 @@ class LidarPublisher(SensorDataPublisher):
 
     def _make_msg(self):
         readings_data = self._sensor.poll()
-        points = readings_data['pointCloud']
-        # colours = readings_data['colours']
+        points = np.array(readings_data['pointCloud'])
+        colours = readings_data['colours']
         header = std_msgs.msg.Header()
         header.frame_id = 'map'
         header.stamp = rospy.get_rostime()
-        msg = pc2.create_cloud_xyz32(header, points)
+
+        pointcloud_fields = [('x', np.float32),
+                             ('y', np.float32),
+                             ('z', np.float32),
+                             ('intensity', np.float32)]
+
+        pointcloud_data = np.zeros(points.shape[0], dtype=pointcloud_fields)
+        pointcloud_data['x'] = points[:, 0]
+        pointcloud_data['y'] = points[:, 1]
+        pointcloud_data['z'] = points[:, 2]
+        pointcloud_data['intensity'] = np.array(colours)
+
+        msg = ros_numpy.msgify(PointCloud2, pointcloud_data)
+        msg.header = header
+        # msg = pc2.create_cloud_xyz32(header, points)
         return msg
 
 
@@ -407,6 +424,8 @@ class VehiclePublisher(BNGPublisher):
                  node_name,
                  visualize=True):
         self._vehicle = vehicle
+        self._broadcaster_pose = tf2_ros.TransformBroadcaster()
+        self.node_name = node_name
         self._sensor_publishers = list()
         for sensor_name, sensor in vehicle.sensors.items():
             topic_id = [node_name, vehicle.vid, sensor_name]
@@ -418,6 +437,7 @@ class VehiclePublisher(BNGPublisher):
             else:
                 pub = pub(sensor, topic_id)
             self._sensor_publishers.append(pub)
+
         self.visualizer = None
         if visualize:
             topic_id = [node_name, vehicle.vid, 'marker']
@@ -426,7 +446,25 @@ class VehiclePublisher(BNGPublisher):
                                               Marker,
                                               queue_size=1)
 
-    def state_to_marker(self, data, marker_ns):
+    def broadcast_vehicle_pose(self, data):
+        t = tf2_ros.TransformStamped()
+
+        t.header.stamp = rospy.Time.now()
+        t.header.frame_id = 'map'
+        t.child_frame_id = self._vehicle.vid
+
+        t.transform.translation.x = data['pos'][0]
+        t.transform.translation.y = data['pos'][1]
+        t.transform.translation.z = data['pos'][2]
+
+        t.transform.rotation.x = data['rotation'][0]
+        t.transform.rotation.y = data['rotation'][1]
+        t.transform.rotation.z = data['rotation'][2]
+        t.transform.rotation.w = data['rotation'][3]
+        self._broadcaster_pose.sendTransform(t)
+
+    @staticmethod
+    def state_to_marker(data, marker_ns):
         mark = Marker()
         mark.header.frame_id = 'map'
         mark.header.stamp = rospy.Time.now()
@@ -457,7 +495,7 @@ class VehiclePublisher(BNGPublisher):
 
     def publish(self):
         self._vehicle.poll_sensors()
-        # todo: we really want a TF frame for this
+        self.broadcast_vehicle_pose(self._vehicle.sensors['state'].data)
         for pub in self._sensor_publishers:
             pub.publish()
         if self.visualizer is not None:
