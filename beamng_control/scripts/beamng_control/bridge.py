@@ -172,7 +172,7 @@ class BeamNGBridge(object):
                                                       name=name,
                                                       dyn_sensor_properties=dyn_spec)
                 if sensor_publisher is not None:
-                    self._publishers.append(sensor_publisher(sensor, NODE_NAME))
+                    self._publishers.append(sensor_publisher(sensor, f"{NODE_NAME}/{vehicle.vid}/{name}"))
             # for n_spec in noise_sensors:
             #     n_name = n_spec.pop('name')
             #     n_type = n_spec.pop('type')

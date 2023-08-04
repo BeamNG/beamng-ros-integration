@@ -435,7 +435,7 @@ class VehiclePublisher(BNGPublisher):
 
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = 'map'
-        t.child_frame_id = self.node_name
+        t.child_frame_id = self._vehicle.vid
 
         t.transform.translation.x = data['pos'][0]
         t.transform.translation.y = data['pos'][1]
