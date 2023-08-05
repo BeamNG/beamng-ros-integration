@@ -6,7 +6,6 @@ import json
 import copy
 from pathlib import Path
 from distutils.version import LooseVersion
-import threading
 
 import rospy
 import rospkg
@@ -32,13 +31,6 @@ def load_json(file_name):
     with file_path.open('r') as fh:
         content = json.load(fh)
     return content
-
-
-def publish(publisher, ros_rate):
-    rate = rospy.Rate(ros_rate)
-    while not rospy.is_shutdown():
-        publisher.publish()
-        rate.sleep()
 
 
 class BeamNGBridge(object):
@@ -240,8 +232,7 @@ class BeamNGBridge(object):
             on_scenario_start.append(tod)
         net_viz_key = 'network_vizualization'
         if net_viz_key in scenario_spec and scenario_spec[net_viz_key] == 'on':
-            self._publishers.append(NetworkPublisher(self.game_client,
-                                                     NODE_NAME))
+            self._publishers.append(NetworkPublisher(self.game_client, NODE_NAME))
         return scenario, on_scenario_start, vehicle_list
 
     def start_scenario(self, file_name):
@@ -427,16 +418,14 @@ class BeamNGBridge(object):
         return network
 
     def work(self):
-        ros_rate=30
-        rate = rospy.Rate(ros_rate)  # todo increase
-        pool = []
-        for pub in self._publishers:
-            pool.append(threading.Thread(target=publish, args=(pub, ros_rate)))
+        ros_rate = 10
+        rate = rospy.Rate(ros_rate)  # todo add threading
         if self.running:
-            for p in pool:
-                p.start()
-        while not rospy.is_shutdown():
-            rate.sleep()
+            while not rospy.is_shutdown():
+                for pub in self._publishers:
+                    pub.publish()
+                rate.sleep()
+
 
     def on_shutdown(self):
         rospy.loginfo("Shutting down beamng_control/bridge.py node")

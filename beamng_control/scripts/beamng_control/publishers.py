@@ -407,6 +407,7 @@ class VehiclePublisher(BNGPublisher):
     def __init__(self, vehicle,
                  node_name,
                  visualize=True):
+        self._sensor = node_name
         self._vehicle = vehicle
         self._broadcaster_pose = tf2_ros.TransformBroadcaster()
         self.node_name = node_name
@@ -491,6 +492,7 @@ class VehiclePublisher(BNGPublisher):
 class NetworkPublisher(BNGPublisher):
 
     def __init__(self, game_client, node_name):
+        self._sensor = node_name
         self._game_client = game_client
         self._road_network = None
         self._node_name = node_name
