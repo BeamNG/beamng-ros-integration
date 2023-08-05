@@ -9,6 +9,9 @@ import tf2_ros
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 
+import concurrent.futures
+import threading
+
 import sensor_msgs
 import sensor_msgs.point_cloud2 as pc2
 import geometry_msgs.msg as geom_msgs
@@ -497,8 +500,8 @@ class VehiclePublisher(BNGPublisher):
     def publish(self, current_time):
         self._vehicle.poll_sensors()
         self.broadcast_vehicle_pose(current_time, self._vehicle.sensors['state'].data)
-        for pub in self._sensor_publishers:
-            pub.publish(current_time)
+        for pub in self._sensor_publishers:  # this got us 1fps more
+            threading.Thread(target=pub.publish, args=(current_time,), daemon=True).start()
         if self.visualizer is not None:
             mark = self.state_to_marker(current_time,
                                         self._vehicle.sensors['state'].data,
@@ -562,6 +565,4 @@ class NetworkPublisher(BNGPublisher):
     def publish(self, current_time):
         if self._road_network is None:
             self.set_up_road_network_viz(current_time)
-        # for r in self._road_network.markers:
-        #     r.header.stamp = current_time
         self._pub.publish(self._road_network.markers)
