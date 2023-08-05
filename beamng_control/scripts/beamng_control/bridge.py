@@ -59,6 +59,7 @@ class BeamNGBridge(object):
 
         self._stepAS.start()
         self._marker_idx = 0
+        self.network_publisher = None
 
     def _setup_sensor_defs(self, sensor_paths):
         default_path = ['/config/sensors.json']
@@ -423,9 +424,8 @@ class BeamNGBridge(object):
         if self.running:
             while not rospy.is_shutdown():
                 for pub in self._publishers:
-                    pub.publish()
+                    pub.publish(rospy.Time.now())
                 rate.sleep()
-
 
     def on_shutdown(self):
         rospy.loginfo("Shutting down beamng_control/bridge.py node")

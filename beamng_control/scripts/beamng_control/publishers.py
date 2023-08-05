@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import rospy
 import numpy as np
+
 np.float = np.float64  # temp fix for following import
 import ros_numpy
 from sensor_msgs.point_cloud2 import PointCloud2
@@ -44,7 +45,7 @@ def get_sensor_publisher(sensor):
 class BNGPublisher(ABC):
 
     @abstractmethod
-    def publish(self):
+    def publish(self, current_time):
         pass
 
 
@@ -61,7 +62,7 @@ class SensorDataPublisher(BNGPublisher):
     def _make_msg(self):
         pass
 
-    def publish(self):
+    def publish(self, current_time):
         msg = self._make_msg()
         self._pub.publish(msg)
 
@@ -384,9 +385,9 @@ class CameraPublisher(BNGPublisher):
                                    vehicle)
             self._publishers.append(pub)
 
-    def publish(self):
+    def publish(self, current_time):
         for pub in self._publishers:
-            pub.publish()
+            pub.publish(current_time)
 
 
 class LidarPublisher(SensorDataPublisher):
@@ -401,7 +402,6 @@ class LidarPublisher(SensorDataPublisher):
         colours = readings_data['colours']
         header = std_msgs.msg.Header()
         header.frame_id = 'map'
-        header.stamp = rospy.get_rostime()
 
         pointcloud_fields = [('x', np.float32),
                              ('y', np.float32),
@@ -452,8 +452,8 @@ class VehiclePublisher(BNGPublisher):
                                               Marker,
                                               queue_size=1)
 
-    def broadcast_vehicle_pose(self, data):
-        self.tf_msg.header.stamp = rospy.Time.now()
+    def broadcast_vehicle_pose(self, current_time, data):
+        self.tf_msg.header.stamp = current_time
         self.tf_msg.transform.translation.x = data['pos'][0]
         self.tf_msg.transform.translation.y = data['pos'][1]
         self.tf_msg.transform.translation.z = data['pos'][2]
@@ -465,10 +465,10 @@ class VehiclePublisher(BNGPublisher):
         self._broadcaster_pose.sendTransform(self.tf_msg)
 
     @staticmethod
-    def state_to_marker(data, marker_ns):
+    def state_to_marker(current_time, data, marker_ns):
         mark = Marker()
         mark.header.frame_id = 'map'
-        mark.header.stamp = rospy.Time.now()
+        mark.header.stamp = current_time
         mark.type = Marker.CUBE
         mark.ns = marker_ns
         mark.action = Marker.ADD
@@ -494,13 +494,14 @@ class VehiclePublisher(BNGPublisher):
 
         return mark
 
-    def publish(self):
+    def publish(self, current_time):
         self._vehicle.poll_sensors()
-        self.broadcast_vehicle_pose(self._vehicle.sensors['state'].data)
+        self.broadcast_vehicle_pose(current_time, self._vehicle.sensors['state'].data)
         for pub in self._sensor_publishers:
-            pub.publish()
+            pub.publish(current_time)
         if self.visualizer is not None:
-            mark = self.state_to_marker(self._vehicle.sensors['state'].data,
+            mark = self.state_to_marker(current_time,
+                                        self._vehicle.sensors['state'].data,
                                         self._vehicle.vid)
             self.visualizer.publish(mark)
 
@@ -514,7 +515,7 @@ class NetworkPublisher(BNGPublisher):
         topic_id = '/'.join([node_name, 'road_network'])
         self._pub = rospy.Publisher(topic_id, MarkerArray, queue_size=1)
 
-    def set_up_road_network_viz(self):
+    def set_up_road_network_viz(self, current_time):
         roads = self._game_client.get_roads()
         network_def = dict()
         for r_id, r_inf in roads.items():
@@ -527,12 +528,13 @@ class NetworkPublisher(BNGPublisher):
             mark = Marker()
             mark.header = std_msgs.msg.Header()
             mark.header.frame_id = 'map'
+            mark.header.stamp = current_time
             mark.type = Marker.LINE_STRIP
             ns = self._node_name
             mark.ns = ns
             mark.action = Marker.ADD
             mark.id = r_id
-            mark.lifetime = rospy.Duration()
+            mark.lifetime = rospy.Duration(0)  # leave them up forever
 
             mark.pose.position.x = 0
             mark.pose.position.y = 0
@@ -557,9 +559,9 @@ class NetworkPublisher(BNGPublisher):
         marker_num = len(self._road_network.markers)
         rospy.logdebug(f'the road network contains {marker_num} markers')
 
-    def publish(self):
+    def publish(self, current_time):
         if self._road_network is None:
-            self.set_up_road_network_viz()
-        for r in self._road_network.markers:
-            r.header.stamp = rospy.get_rostime()
+            self.set_up_road_network_viz(current_time)
+        # for r in self._road_network.markers:
+        #     r.header.stamp = current_time
         self._pub.publish(self._road_network.markers)
