@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 import rospy
+import numpy as np
+np.float = np.float64  # temp fix for following import
 import ros_numpy
 from sensor_msgs.point_cloud2 import PointCloud2
 import tf2_ros
@@ -414,7 +416,6 @@ class LidarPublisher(SensorDataPublisher):
 
         msg = ros_numpy.msgify(PointCloud2, pointcloud_data)
         msg.header = header
-        # msg = pc2.create_cloud_xyz32(header, points)
         return msg
 
 
