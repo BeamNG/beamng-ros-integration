@@ -8,4 +8,5 @@
     </include>
     <node pkg="tf2_ros" type="static_transform_publisher" name="ego_vehicle_lidar_link_broadcaster"
     args="0 0 2 0 0 0 1 ego_vehicle lidar_link" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find beamng_control)/config/rviz/example.rviz" />
 </launch>
