@@ -6,6 +6,7 @@ import json
 import copy
 from pathlib import Path
 from distutils.version import LooseVersion
+import threading
 
 import rospy
 import rospkg
@@ -31,6 +32,13 @@ def load_json(file_name):
     with file_path.open('r') as fh:
         content = json.load(fh)
     return content
+
+
+def publish(publisher, ros_rate):
+    rate = rospy.Rate(ros_rate)
+    while not rospy.is_shutdown():
+        publisher.publish()
+        rate.sleep()
 
 
 class BeamNGBridge(object):
@@ -419,11 +427,15 @@ class BeamNGBridge(object):
         return network
 
     def work(self):
-        rate = rospy.Rate(10)  # todo increase
+        ros_rate=30
+        rate = rospy.Rate(ros_rate)  # todo increase
+        pool = []
+        for pub in self._publishers:
+            pool.append(threading.Thread(target=publish, args=(pub, ros_rate)))
+        if self.running:
+            for p in pool:
+                p.start()
         while not rospy.is_shutdown():
-            if self.running:
-                for pub in self._publishers:
-                    pub.publish()
             rate.sleep()
 
     def on_shutdown(self):
