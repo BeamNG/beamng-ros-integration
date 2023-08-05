@@ -1,20 +1,20 @@
 {
   "version": 0.1,
-  "level": "west_coast_usa",
+  "level": "Utah",
   "name": "road_network",
   "mode": "None",
   "network_vizualization": "on",
   "vehicles": [
     {
       "name": "ego_vehicle",
-      "model": "etk800",
-      "position": [568.908, 13.422,  148.565],
+      "model": "pickup",
+      "position": [570.9158935546875, 12.969861030578613, 140.009033203125],
       "rotation": [0, 0, 0, 1],
       "sensors_automation": [
         {
           "name": "lidar0",
           "type": "Lidar.default",
-          "position": [0, 0, 1.7]
+          "position": [0, 0, 2.0]
         }
       ]
     }

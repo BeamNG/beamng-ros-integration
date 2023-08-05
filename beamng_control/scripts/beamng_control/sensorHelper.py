@@ -32,14 +32,14 @@ def get_lidar(bng,
                       'sensor data is always shared through sockets.')
     try:
         lidar = bng_sensors.Lidar(bng=bng,
-                              vehicle=vehicle,
-                              pos=position,
-                              dir=direction,
-                              vertical_resolution=vertical_resolution,
-                              vertical_angle=vertical_angle,
-                              max_distance=max_distance,
-                              is_using_shared_memory=False,
-                              **spec)
+                                  vehicle=vehicle,
+                                  pos=position,
+                                  dir=direction,
+                                  vertical_resolution=vertical_resolution,
+                                  vertical_angle=vertical_angle,
+                                  max_distance=max_distance,
+                                  is_using_shared_memory=False,
+                                  **spec)
     except TypeError as e:
         raise SensorSpecificationError('Could not get Lidar instance, the '
                                        'json specification provided an'

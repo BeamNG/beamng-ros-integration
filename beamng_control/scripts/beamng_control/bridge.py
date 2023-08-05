@@ -172,7 +172,7 @@ class BeamNGBridge(object):
                                                       name=name,
                                                       dyn_sensor_properties=dyn_spec)
                 if sensor_publisher is not None:
-                    self._publishers.append(sensor_publisher(sensor, NODE_NAME))
+                    self._publishers.append(sensor_publisher(sensor, f"{NODE_NAME}/{vehicle.vid}/{name}"))
             # for n_spec in noise_sensors:
             #     n_name = n_spec.pop('name')
             #     n_type = n_spec.pop('type')
@@ -232,8 +232,7 @@ class BeamNGBridge(object):
             on_scenario_start.append(tod)
         net_viz_key = 'network_vizualization'
         if net_viz_key in scenario_spec and scenario_spec[net_viz_key] == 'on':
-            self._publishers.append(NetworkPublisher(self.game_client,
-                                                     NODE_NAME))
+            self._publishers.append(NetworkPublisher(self.game_client, NODE_NAME))
         return scenario, on_scenario_start, vehicle_list
 
     def start_scenario(self, file_name):
@@ -419,12 +418,14 @@ class BeamNGBridge(object):
         return network
 
     def work(self):
-        rate = rospy.Rate(10)  # todo increase
-        while not rospy.is_shutdown():
-            if self.running:
+        ros_rate = 10
+        rate = rospy.Rate(ros_rate)  # todo add threading
+        if self.running:
+            while not rospy.is_shutdown():
                 for pub in self._publishers:
                     pub.publish()
-            rate.sleep()
+                rate.sleep()
+
 
     def on_shutdown(self):
         rospy.loginfo("Shutting down beamng_control/bridge.py node")

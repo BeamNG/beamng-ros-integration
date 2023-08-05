@@ -20,7 +20,7 @@
       "rays_per_second": 2200000,
       "frequency": 20,
       "horizontal_angle": 360,
-      "max_distance": 10,
+      "max_distance": 100,
       "direction": [0, -1, 0]
     }
   },
