@@ -410,6 +410,10 @@ class VehiclePublisher(BNGPublisher):
         self._sensor = node_name
         self._vehicle = vehicle
         self._broadcaster_pose = tf2_ros.TransformBroadcaster()
+        self.tf_msg = tf2_ros.TransformStamped()
+        self.tf_msg.header.frame_id = 'map'
+        self.tf_msg.child_frame_id = self._vehicle.vid
+
         self.node_name = node_name
         self._sensor_publishers = list()
         for sensor_name, sensor in vehicle.sensors.items():
@@ -432,21 +436,16 @@ class VehiclePublisher(BNGPublisher):
                                               queue_size=1)
 
     def broadcast_vehicle_pose(self, data):
-        t = tf2_ros.TransformStamped()
+        self.tf_msg.header.stamp = rospy.Time.now()
+        self.tf_msg.transform.translation.x = data['pos'][0]
+        self.tf_msg.transform.translation.y = data['pos'][1]
+        self.tf_msg.transform.translation.z = data['pos'][2]
 
-        t.header.stamp = rospy.Time.now()
-        t.header.frame_id = 'map'
-        t.child_frame_id = self._vehicle.vid
-
-        t.transform.translation.x = data['pos'][0]
-        t.transform.translation.y = data['pos'][1]
-        t.transform.translation.z = data['pos'][2]
-
-        t.transform.rotation.x = data['rotation'][0]
-        t.transform.rotation.y = data['rotation'][1]
-        t.transform.rotation.z = data['rotation'][2]
-        t.transform.rotation.w = data['rotation'][3]
-        self._broadcaster_pose.sendTransform(t)
+        self.tf_msg.transform.rotation.x = data['rotation'][0]
+        self.tf_msg.transform.rotation.y = data['rotation'][1]
+        self.tf_msg.transform.rotation.z = data['rotation'][2]
+        self.tf_msg.transform.rotation.w = data['rotation'][3]
+        self._broadcaster_pose.sendTransform(self.tf_msg)
 
     @staticmethod
     def state_to_marker(data, marker_ns):
