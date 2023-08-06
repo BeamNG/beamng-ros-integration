@@ -49,6 +49,7 @@ class BeamNGBridge(object):
 
         self._setup_services()
         self._publishers = list()
+        self._vehicle_publisher = None
         self._setup_sensor_defs(sensor_paths)
 
         self._stepAS = actionlib.SimpleActionServer(f'{NODE_NAME}/step',
@@ -59,6 +60,7 @@ class BeamNGBridge(object):
 
         self._stepAS.start()
         self._marker_idx = 0
+        self.network_publisher = None
 
     def _setup_sensor_defs(self, sensor_paths):
         default_path = ['/config/sensors.json']
@@ -212,7 +214,7 @@ class BeamNGBridge(object):
             vehicle = self.get_vehicle_from_dict(v_spec)
             # set up classical sensors
             vehicle = self.get_sensor_classical_from_dict(v_spec, vehicle)
-            self._publishers.append(VehiclePublisher(vehicle, NODE_NAME))  # todo markers need to be added somwhere else
+            self._vehicle_publisher = VehiclePublisher(vehicle, NODE_NAME)  # we need this to be published first for tf
             scenario.add_vehicle(vehicle,
                                  pos=v_spec['position'],
                                  rot_quat=v_spec['rotation'])
@@ -422,10 +424,12 @@ class BeamNGBridge(object):
         rate = rospy.Rate(ros_rate)  # todo add threading
         if self.running:
             while not rospy.is_shutdown():
+                current_time = rospy.Time.now()
+                if self._vehicle_publisher is not None:
+                    self._vehicle_publisher.publish(current_time)
                 for pub in self._publishers:
-                    pub.publish()
+                    pub.publish(current_time)
                 rate.sleep()
-
 
     def on_shutdown(self):
         rospy.loginfo("Shutting down beamng_control/bridge.py node")

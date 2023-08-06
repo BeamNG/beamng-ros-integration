@@ -1,12 +1,17 @@
 from abc import ABC, abstractmethod
 import rospy
 import numpy as np
+
 np.float = np.float64  # temp fix for following import
 import ros_numpy
 from sensor_msgs.point_cloud2 import PointCloud2
+import tf
 import tf2_ros
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
+
+import concurrent.futures
+import threading
 
 import sensor_msgs
 import sensor_msgs.point_cloud2 as pc2
@@ -44,7 +49,7 @@ def get_sensor_publisher(sensor):
 class BNGPublisher(ABC):
 
     @abstractmethod
-    def publish(self):
+    def publish(self, current_time):
         pass
 
 
@@ -56,12 +61,15 @@ class SensorDataPublisher(BNGPublisher):
         self._pub = rospy.Publisher(topic_id,
                                     msg_type,
                                     queue_size=1)
+        self.current_time = rospy.get_rostime()
+        self.frame_map = 'map'
 
     @abstractmethod
     def _make_msg(self):
         pass
 
-    def publish(self):
+    def publish(self, current_time):
+        self.current_time = current_time
         msg = self._make_msg()
         self._pub.publish(msg)
 
@@ -384,29 +392,26 @@ class CameraPublisher(BNGPublisher):
                                    vehicle)
             self._publishers.append(pub)
 
-    def publish(self):
+    def publish(self, current_time):
         for pub in self._publishers:
-            pub.publish()
+            pub.current_time = current_time
+            pub.publish(current_time)
 
-import time
-import tf
+
 class LidarPublisher(SensorDataPublisher):
 
     def __init__(self, sensor, topic_id):
         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
         self.listener = tf.TransformListener()
         rospy.logwarn(f'sensor_msgs.msg.PointCloud2: {sensor_msgs.msg.PointCloud2}')
+        self.frame_lidar_sensor = 'lidar_link'
 
     def _make_msg(self):
-        frame0 = 'map'
-        frame1 = 'ego_vehicle'
         header = std_msgs.msg.Header()
-        header.frame_id = frame1
-        header.stamp = rospy.get_rostime()
+        header.frame_id = self.frame_lidar_sensor
+        header.stamp = self.current_time
 
-        start = time.time()
         readings_data = self._sensor.poll()
-        rospy.logwarn(f"lidar polling time: {time.time()-start}")
         points = np.array(readings_data['pointCloud'])
         colours = readings_data['colours']
 
@@ -416,16 +421,16 @@ class LidarPublisher(SensorDataPublisher):
                              ('intensity', np.float32)]
 
         try:
-            (trans, _) = self.listener.lookupTransform(frame0, frame1, header.stamp)
+            (trans_map, _) = self.listener.lookupTransform(self.frame_map, self.frame_lidar_sensor, header.stamp)
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
             rospy.logwarn(f'No transform between {frame0} and {frame1} available with exception: {e}')
             points = np.zeros((0, 3))
             colours = np.zeros((0,))
-            trans = np.zeros(3)
+            trans_map = np.zeros(3)
         pointcloud_data = np.zeros(points.shape[0], dtype=pointcloud_fields)
-        pointcloud_data['x'] = points[:, 0] - trans[0]
-        pointcloud_data['y'] = points[:, 1] - trans[1]
-        pointcloud_data['z'] = points[:, 2] - trans[2]
+        pointcloud_data['x'] = points[:, 0] - trans_map[0]
+        pointcloud_data['y'] = points[:, 1] - trans_map[1]
+        pointcloud_data['z'] = points[:, 2] - trans_map[2]
         pointcloud_data['intensity'] = np.array(colours)
         msg = ros_numpy.msgify(PointCloud2, pointcloud_data)
         msg.header = header
@@ -441,8 +446,10 @@ class VehiclePublisher(BNGPublisher):
         self.node_name = node_name
         self._broadcaster_pose = tf2_ros.TransformBroadcaster()
         self.tf_msg = tf2_ros.TransformStamped()
-        self.tf_msg.header.frame_id = 'map'
+        self.frame_map = 'map'
+        self.tf_msg.header.frame_id = self.frame_map
         self.tf_msg.child_frame_id = self._vehicle.vid
+        self.current_time = rospy.get_rostime()
 
         self.node_name = node_name
         self._sensor_publishers = list()
@@ -466,7 +473,7 @@ class VehiclePublisher(BNGPublisher):
                                               queue_size=1)
 
     def broadcast_vehicle_pose(self, data):
-        self.tf_msg.header.stamp = rospy.Time.now()
+        self.tf_msg.header.stamp = self.current_time
         self.tf_msg.transform.translation.x = data['pos'][0]
         self.tf_msg.transform.translation.y = data['pos'][1]
         self.tf_msg.transform.translation.z = data['pos'][2]
@@ -477,11 +484,10 @@ class VehiclePublisher(BNGPublisher):
         self.tf_msg.transform.rotation.w = data['rotation'][3]
         self._broadcaster_pose.sendTransform(self.tf_msg)
 
-    @staticmethod
-    def state_to_marker(data, marker_ns):
+    def state_to_marker(self, data, marker_ns):
         mark = Marker()
-        mark.header.frame_id = 'map'
-        mark.header.stamp = rospy.Time.now()
+        mark.header.frame_id = self.frame_map
+        mark.header.stamp = self.current_time
         mark.type = Marker.CUBE
         mark.ns = marker_ns
         mark.action = Marker.ADD
@@ -507,11 +513,12 @@ class VehiclePublisher(BNGPublisher):
 
         return mark
 
-    def publish(self):
+    def publish(self, current_time):
+        self.current_time = current_time
         self._vehicle.poll_sensors()
         self.broadcast_vehicle_pose(self._vehicle.sensors['state'].data)
-        for pub in self._sensor_publishers:
-            pub.publish()
+        for pub in self._sensor_publishers:  # this got us 1fps more
+            threading.Thread(target=pub.publish, args=(current_time,), daemon=True).start()
         if self.visualizer is not None:
             mark = self.state_to_marker(self._vehicle.sensors['state'].data,
                                         self._vehicle.vid)
@@ -521,11 +528,13 @@ class VehiclePublisher(BNGPublisher):
 class NetworkPublisher(BNGPublisher):
 
     def __init__(self, game_client, node_name):
+        self.frame_map = 'map'
         self._game_client = game_client
         self._road_network = None
         self._node_name = node_name
         topic_id = '/'.join([node_name, 'road_network'])
         self._pub = rospy.Publisher(topic_id, MarkerArray, queue_size=1)
+        self.current_time = rospy.get_rostime()
 
     def set_up_road_network_viz(self):
         roads = self._game_client.get_roads()
@@ -539,13 +548,14 @@ class NetworkPublisher(BNGPublisher):
             rospy.logdebug(f'++++++++++\nroad: {road}')
             mark = Marker()
             mark.header = std_msgs.msg.Header()
-            mark.header.frame_id = 'map'
+            mark.header.frame_id = self.frame_map
+            mark.header.stamp = self.current_time
             mark.type = Marker.LINE_STRIP
             ns = self._node_name
             mark.ns = ns
             mark.action = Marker.ADD
             mark.id = r_id
-            mark.lifetime = rospy.Duration()
+            mark.lifetime = rospy.Duration(0)  # leave them up forever
 
             mark.pose.position.x = 0
             mark.pose.position.y = 0
@@ -570,9 +580,8 @@ class NetworkPublisher(BNGPublisher):
         marker_num = len(self._road_network.markers)
         rospy.logdebug(f'the road network contains {marker_num} markers')
 
-    def publish(self):
+    def publish(self, current_time):
+        self.current_time = current_time
         if self._road_network is None:
             self.set_up_road_network_viz()
-        for r in self._road_network.markers:
-            r.header.stamp = rospy.get_rostime()
         self._pub.publish(self._road_network.markers)
