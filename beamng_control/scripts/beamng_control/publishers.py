@@ -10,11 +10,9 @@ import tf2_ros
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 
-import concurrent.futures
 import threading
 
 import sensor_msgs
-import sensor_msgs.point_cloud2 as pc2
 import geometry_msgs.msg as geom_msgs
 import std_msgs.msg
 
@@ -403,7 +401,6 @@ class LidarPublisher(SensorDataPublisher):
     def __init__(self, sensor, topic_id):
         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
         self.listener = tf.TransformListener()
-        rospy.logwarn(f'sensor_msgs.msg.PointCloud2: {sensor_msgs.msg.PointCloud2}')
         self.frame_lidar_sensor = 'lidar_link'
 
     def _make_msg(self):
@@ -423,7 +420,8 @@ class LidarPublisher(SensorDataPublisher):
         try:
             (trans_map, _) = self.listener.lookupTransform(self.frame_map, self.frame_lidar_sensor, header.stamp)
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-            rospy.logwarn(f'No transform between {frame0} and {frame1} available with exception: {e}')
+            rospy.logwarn(f'No transform between {self.frame_map} and '
+                          f'{self.frame_lidar_sensor} available with exception: {e}')
             points = np.zeros((0, 3))
             colours = np.zeros((0,))
             trans_map = np.zeros(3)
