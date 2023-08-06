@@ -388,32 +388,45 @@ class CameraPublisher(BNGPublisher):
         for pub in self._publishers:
             pub.publish()
 
-
+import time
+import tf
 class LidarPublisher(SensorDataPublisher):
 
     def __init__(self, sensor, topic_id):
         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
+        self.listener = tf.TransformListener()
         rospy.logwarn(f'sensor_msgs.msg.PointCloud2: {sensor_msgs.msg.PointCloud2}')
 
     def _make_msg(self):
+        frame0 = 'map'
+        frame1 = 'ego_vehicle'
+        header = std_msgs.msg.Header()
+        header.frame_id = frame1
+        header.stamp = rospy.get_rostime()
+
+        start = time.time()
         readings_data = self._sensor.poll()
+        rospy.logwarn(f"lidar polling time: {time.time()-start}")
         points = np.array(readings_data['pointCloud'])
         colours = readings_data['colours']
-        header = std_msgs.msg.Header()
-        header.frame_id = 'map'
-        header.stamp = rospy.get_rostime()
 
         pointcloud_fields = [('x', np.float32),
                              ('y', np.float32),
                              ('z', np.float32),
                              ('intensity', np.float32)]
 
+        try:
+            (trans, _) = self.listener.lookupTransform(frame0, frame1, header.stamp)
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+            rospy.logwarn(f'No transform between {frame0} and {frame1} available with exception: {e}')
+            points = np.zeros((0, 3))
+            colours = np.zeros((0,))
+            trans = np.zeros(3)
         pointcloud_data = np.zeros(points.shape[0], dtype=pointcloud_fields)
-        pointcloud_data['x'] = points[:, 0]
-        pointcloud_data['y'] = points[:, 1]
-        pointcloud_data['z'] = points[:, 2]
+        pointcloud_data['x'] = points[:, 0] - trans[0]
+        pointcloud_data['y'] = points[:, 1] - trans[1]
+        pointcloud_data['z'] = points[:, 2] - trans[2]
         pointcloud_data['intensity'] = np.array(colours)
-
         msg = ros_numpy.msgify(PointCloud2, pointcloud_data)
         msg.header = header
         return msg
