@@ -9,6 +9,7 @@ import tf
 import tf2_ros
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
+from cv_bridge import CvBridge
 
 import threading
 
@@ -280,9 +281,9 @@ class ColorImgPublisher(SensorDataPublisher):
         self._data_descriptor = data_descriptor
 
     def _make_msg(self):
-        data = self._sensor.data
-        img = data[self._data_descriptor].convert('RGB')
-        img = np.array(img)
+        data = self._sensor.poll()
+        img = data['colour']
+        img = np.array(img)[:, :, :3]
         img = img[:, :, ::-1].copy()
         try:
             img = self._cv_helper.cv2_to_imgmsg(img, 'bgr8')
@@ -300,9 +301,9 @@ class DepthImgPublisher(SensorDataPublisher):
         self._cv_helper = cv_helper
 
     def _make_msg(self):
-        data = self._sensor.data
+        data = self._sensor.poll()
         img = data['depth']
-        near, far = self._sensor.near_far
+        near, far = self._sensor.near_far_planes
         img = (np.array(img) - near) / far * 255
         img = img.astype(np.uint8)
         try:
@@ -355,27 +356,27 @@ class CameraPublisher(BNGPublisher):
         self._sensor = sensor
         self._cv_helper = CvBridge()
         self._publishers = list()
-        if self._sensor.colour:
+        if self._sensor.is_render_colours:
             color_topic = '/'.join([topic_id, 'color'])
             pub = ColorImgPublisher(sensor,
                                     color_topic,
                                     self._cv_helper,
                                     'colour')
             self._publishers.append(pub)
-        if self._sensor.depth:
+        if self._sensor.is_render_depth:
             depth_topic = '/'.join([topic_id, 'depth'])
             pub = DepthImgPublisher(sensor,
                                     depth_topic,
                                     self._cv_helper)
             self._publishers.append(pub)
-        if self._sensor.annotation:
+        if self._sensor.is_render_annotations:
             annotation_topic = '/'.join([topic_id, 'annotation'])
             pub = ColorImgPublisher(sensor,
                                     annotation_topic,
                                     self._cv_helper,
                                     'annotation')
             self._publishers.append(pub)
-        if self._sensor.instance:
+        if self._sensor.is_render_instance:
             inst_ann_topic = '/'.join([topic_id, 'instance'])
             pub = ColorImgPublisher(sensor,
                                     inst_ann_topic,
@@ -398,7 +399,7 @@ class CameraPublisher(BNGPublisher):
 
 class LidarPublisher(SensorDataPublisher):
 
-    def __init__(self, sensor, topic_id):
+    def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
         self.listener = tf.TransformListener()
         self.frame_lidar_sensor = 'lidar_link'

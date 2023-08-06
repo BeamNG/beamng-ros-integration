@@ -2,7 +2,7 @@ import rospy
 import copy
 
 import beamngpy.sensors as bng_sensors
-from beamng_control.publishers import LidarPublisher
+from beamng_control.publishers import LidarPublisher, CameraPublisher
 
 
 # from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
@@ -83,7 +83,7 @@ def get_ultrasonic(position, rotation, **spec):
     return us
 
 
-def get_camera(position, rotation, fov, resolution, **spec):
+def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resolution, **spec):
     if 'bounding_box' in spec:
         if spec['bounding_box']:
             rospy.logerr('Bounding boxes are not supported '
@@ -91,17 +91,20 @@ def get_camera(position, rotation, fov, resolution, **spec):
         bbox = spec.pop('bounding_box')
     bbox = False  # remove when bboxes are working
 
-    if 'shmem' in spec:
+    if 'is_using_shared_memory' in spec:
         rospy.logerr('Shared memory is automatically disabled '
                      'for the camera sensor.')
-        spec.pop('shmem')
+        spec.pop('is_using_shared_memory')
 
     try:
-        cam = bng_sensors.Camera(position,
-                                 rotation,
-                                 fov,
-                                 resolution,
-                                 shmem=False,
+        cam = bng_sensors.Camera(name=name,
+                                 bng=bng,
+                                 vehicle=vehicle,
+                                 pos=position,
+                                 dir=rotation,
+                                 field_of_view_y=field_of_view_y,
+                                 resolution=resolution,
+                                 is_using_shared_memory=False,
                                  **spec)
     except TypeError as e:
         raise SensorSpecificationError('Could not get Camera instance, the '
@@ -211,7 +214,8 @@ _automation_sensors = ['Camera',
                        'meshsensor',  # unsure about this one
                        ]
 _sensor_automation_type_publisher_getter = {
-    'Lidar': LidarPublisher
+    'Lidar': LidarPublisher,
+    'Camera': CameraPublisher,
 }
 
 _sensor_getters = {

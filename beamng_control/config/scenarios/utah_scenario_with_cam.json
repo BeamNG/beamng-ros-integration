@@ -7,7 +7,7 @@
   "vehicles": [
     {
       "name": "ego_vehicle",
-      "model": "etk800",
+      "model": "pickup",
       "position": [568.908, 13.422,  139.565],
       "rotation": [0, 0, 0, 1],
       "sensors_automation": [
