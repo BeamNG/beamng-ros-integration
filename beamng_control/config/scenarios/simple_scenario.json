@@ -9,7 +9,7 @@
       "model": "etk800",
       "position": [0, 0, 0],
       "rotation": [0, 0, 0, 1],
-      "sensors": [
+      "sensors_classical": [
         {
           "name":"damage0",
           "type":"Damage"
@@ -23,16 +23,28 @@
           "type":"GForces"
         },
         {
+          "name": "electrics0",
+          "type": "Electrics"
+        },
+        {
+          "name": "node_imu",
+          "type": "IMU",
+          "node": 0
+        },
+        {
+          "name": "position_imu",
+          "type": "IMU",
+          "position": [0.73, 0.51, 0.8]
+        }
+      ],
+      "sensors_automation": [
+        {
           "name":"parking_sensor",
           "type":"Ultrasonic.smallrange",
           "position":[0, 1, 2],
           "rotation":[0, 1, 0]
         },
-        {
-          "name": "electrics0",
-          "type": "Electrics"
-        },
-        {
+                {
           "name": "front_cam",
           "type": "Camera.default",
           "position": [-0.3, 1, 1],
@@ -52,16 +64,6 @@
           "name": "lidar_noise",
           "type" : "LidarNoise",
           "base sensor": "lidar0"
-        },
-        {
-          "name": "node_imu",
-          "type": "IMU",
-          "node": 0
-        },
-        {
-          "name": "position_imu",
-          "type": "IMU",
-          "position": [0.73, 0.51, 0.8]
         }
       ]
     }

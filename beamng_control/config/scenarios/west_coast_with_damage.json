@@ -10,7 +10,7 @@
       "model": "etk800",
       "position": [568.908, 13.422,  148.565],
       "rotation": [0, 0, 0, 1],
-      "sensors": [
+      "sensors_classical": [
         {
           "name":"damage0",
           "type":"Damage"
