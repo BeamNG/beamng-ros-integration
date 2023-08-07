@@ -2,19 +2,20 @@
   "Camera": {
     "default": {
       "resolution": [
-        256,
-        256
+        1536,
+        768
       ],
-      "fov":120,
-      "colour": true,
-      "depth": true,
-      "annotation": true,
-      "instance": true,
+      "field_of_view_y":120,
+      "is_render_colours": true,
+      "is_render_depth": true,
+      "is_render_annotations": true,
+      "is_render_instance": true,
       "bounding_box":false
     }
   },
   "Lidar": {
     "default": {
+      "is_visualised": false,
       "vertical_resolution": 32,
       "vertical_angle": 26.9,
       "rays_per_second": 2200000,
