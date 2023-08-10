@@ -282,9 +282,14 @@ class ColorImgPublisher(SensorDataPublisher):
 
     def _make_msg(self):
         data = self._sensor.poll()
-        img = data['colour']
-        img = np.array(img)[:, :, :3]
-        img = img[:, :, ::-1].copy()
+        img = data[self._data_descriptor]
+        if img is not None:
+            img = np.array(img.convert('RGB'))
+            rospy.logerr(f'{self._data_descriptor} shape: {img.shape}')
+
+            img = img[:, :, ::-1].copy()
+        else:
+            img = np.zeros_like(data['colour'].convert('RGB'))
         try:
             img = self._cv_helper.cv2_to_imgmsg(img, 'bgr8')
         except CvBridgeError as e:
@@ -357,7 +362,7 @@ class CameraPublisher(BNGPublisher):
         self._cv_helper = CvBridge()
         self._publishers = list()
         if self._sensor.is_render_colours:
-            color_topic = '/'.join([topic_id, 'color'])
+            color_topic = '/'.join([topic_id, 'colour'])
             pub = ColorImgPublisher(sensor,
                                     color_topic,
                                     self._cv_helper,

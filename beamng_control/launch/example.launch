@@ -1,8 +1,8 @@
 <launch>
-    <arg name="scenario" default="utah_scenario_with_cam_and_lidar" doc="[west_coast_with_electrics, west_coast_with_imu, west_coast_with_lidar]"/>
+    <arg name="scenario" default="utah_scenario_with_cam" doc="[west_coast_with_electrics, west_coast_with_imu, west_coast_with_lidar]"/>
     <include file="$(find beamng_control)/launch/bridge.launch">
         <!-- substitute with the ip address of your target machine-->
-          <arg name="host" value="192.168.1.101"/>
+          <arg name="host" value="192.168.1.13"/>
         <!-- choose scenario-->
         <arg name="scenario_config" value="$(find beamng_control)/config/scenarios/$(arg scenario).json"/>
     </include>
