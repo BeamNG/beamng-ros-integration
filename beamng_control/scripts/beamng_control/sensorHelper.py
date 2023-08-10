@@ -113,7 +113,7 @@ def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resoluti
                                        f'unexpected inputs:\n{spec}\n'
                                        '\nOriginal error '
                                        f'message:\n{e}')
-    if bbox and not (cam.instance and cam.annotation):
+    if bbox and not (cam.is_render_instance and cam.is_render_annotations):
         rospy.logerr('Enabled annotations and instance annotations'
                      'are required to generate images with bounding box.')
     else:

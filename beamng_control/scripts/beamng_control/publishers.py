@@ -335,7 +335,7 @@ class DepthImgPublisher(CameraDataPublisher):
         return img
 
 
-class BBoxImgPublisher(SensorDataPublisher):
+class BBoxImgPublisher(CameraDataPublisher):
 
     def __init__(self, sensor, topic_id, cv_helper, vehicle):
         super().__init__(sensor,
@@ -345,11 +345,10 @@ class BBoxImgPublisher(SensorDataPublisher):
         self._vehicle = vehicle
         self._classes = None
 
-    def _update_data_with_bbox(self):
+    def _update_data_with_bbox(self, data):
         if self._classes is None:
             annotations = self._vehicle.bng.get_annotations()
             self._classes = self._vehicle.bng.get_annotation_classes(annotations)
-        data = self._sensor.data
         bboxes = bng_sensors.Camera.extract_bboxes(data['annotation'],
                                                    data['instance'],
                                                    self._classes)
@@ -360,8 +359,8 @@ class BBoxImgPublisher(SensorDataPublisher):
                                                   width=3)
         return bbox_img
 
-    def _make_msg(self):
-        img = self._update_data_with_bbox()
+    def _make_msg(self, data):
+        img = self._update_data_with_bbox(data)
         img = img.convert('RGB')
         img = np.array(img)
         img = img[:, :, ::-1].copy()
