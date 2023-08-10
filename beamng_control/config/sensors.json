@@ -9,8 +9,8 @@
       "is_render_colours": true,
       "is_render_depth": true,
       "is_render_annotations": true,
-      "is_render_instance": false,
-      "bounding_box": false,
+      "is_render_instance": true,
+      "bounding_box": true,
       "requested_update_time": 0.1
     }
   },

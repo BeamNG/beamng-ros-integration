@@ -23,6 +23,7 @@ import beamngpy.sensors as bng_sensors
 from visualization_msgs.msg import Marker, MarkerArray
 
 import beamng_msgs.msg as bng_msgs
+from beamngpy.sensors import Camera
 
 
 def get_sensor_publisher(sensor):
@@ -349,14 +350,14 @@ class BBoxImgPublisher(CameraDataPublisher):
         if self._classes is None:
             annotations = self._vehicle.bng.get_annotations()
             self._classes = self._vehicle.bng.get_annotation_classes(annotations)
-        bboxes = bng_sensors.Camera.extract_bboxes(data['annotation'],
-                                                   data['instance'],
-                                                   self._classes)
+        bboxes = Camera.extract_bounding_boxes(data['annotation'],
+                                               data['instance'],
+                                               self._classes)
         bboxes = [b for b in bboxes if b['class'] == 'CAR']
         rospy.logdebug(f'bboxes: {bboxes}')
-        bbox_img = bng_sensors.Camera.draw_bboxes(bboxes,
-                                                  data['colour'],
-                                                  width=3)
+        bbox_img = Camera.draw_bounding_boxes(bboxes,
+                                              data['colour'],
+                                              width=3)
         return bbox_img
 
     def _make_msg(self, data):

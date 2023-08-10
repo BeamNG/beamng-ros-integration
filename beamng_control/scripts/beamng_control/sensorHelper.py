@@ -84,13 +84,7 @@ def get_ultrasonic(position, rotation, **spec):
 
 
 def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resolution, **spec):
-    if 'bounding_box' in spec:
-        if spec['bounding_box']:
-            rospy.logerr('Bounding boxes are not supported '
-                         'for the camera sensor.')
-        bbox = spec.pop('bounding_box')
-    bbox = False  # remove when bboxes are working
-
+    bbox = spec.pop('bounding_box')
     if 'is_using_shared_memory' in spec:
         rospy.logerr('Shared memory is automatically disabled '
                      'for the camera sensor.')
