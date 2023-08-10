@@ -420,7 +420,7 @@ class BeamNGBridge(object):
         return network
 
     def work(self):
-        ros_rate = 10
+        ros_rate = 30
         rate = rospy.Rate(ros_rate)  # todo add threading
         if self.running:
             while not rospy.is_shutdown():
