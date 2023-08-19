@@ -10,6 +10,9 @@ from distutils.version import LooseVersion
 import rospy
 import rospkg
 import actionlib
+import tf
+import tf2_ros
+import geometry_msgs.msg
 
 import beamngpy as bngpy
 import beamng_msgs.msg as bng_msgs
@@ -50,6 +53,8 @@ class BeamNGBridge(object):
         self._setup_services()
         self._publishers = list()
         self._vehicle_publisher = None
+        self._static_tf_frames: list = []
+        self._static_tf_broadcaster = tf2_ros.StaticTransformBroadcaster()
         self._setup_sensor_defs(sensor_paths)
 
         self._stepAS = actionlib.SimpleActionServer(f'{NODE_NAME}/step',
@@ -147,6 +152,27 @@ class BeamNGBridge(object):
             vehicle.attach_sensor(n_name, noise)
         return vehicle
 
+    @staticmethod
+    def get_stamped_static_tf_frame(translation, rotation, vehicle_name: str, child_frame: str,
+                                    frame_id: str = 'map', ):
+        static_transform_stamped = geometry_msgs.msg.TransformStamped()
+        static_transform_stamped.header.frame_id = frame_id
+        static_transform_stamped.child_frame_id = f"{vehicle_name}_{child_frame}_link"
+
+        static_transform_stamped.transform.translation.x = float(translation[0])
+        static_transform_stamped.transform.translation.y = float(translation[1])
+        static_transform_stamped.transform.translation.z = float(translation[2])
+
+        quat = tf.transformations.quaternion_from_euler(float(rotation[0]),
+                                                        float(rotation[1]),
+                                                        float(rotation[2]))
+
+        static_transform_stamped.transform.rotation.x = quat[0]
+        static_transform_stamped.transform.rotation.y = quat[1]
+        static_transform_stamped.transform.rotation.z = quat[2]
+        static_transform_stamped.transform.rotation.w = quat[3]
+        return static_transform_stamped
+
     def set_sensor_automation_from_dict(self, scenario_spec, vehicle_list):
         for v_spec, vehicle in zip(scenario_spec['vehicles'], vehicle_list):
             sensor_collection = list()
@@ -174,6 +200,12 @@ class BeamNGBridge(object):
                                                       name=name,
                                                       dyn_sensor_properties=dyn_spec)
                 if sensor_publisher is not None:
+                    static_sensor_frame = self.get_stamped_static_tf_frame(translation=s_spec['position'],
+                                                                           rotation=s_spec['rotation'],
+                                                                           vehicle_name=v_spec['name'],
+                                                                           frame_id=v_spec['name'],
+                                                                           child_frame=s_spec["name"])
+                    self._static_tf_frames.append(static_sensor_frame)
                     self._publishers.append(sensor_publisher(sensor, f"{NODE_NAME}/{vehicle.vid}/{name}", vehicle))
             # for n_spec in noise_sensors:
             #     n_name = n_spec.pop('name')
@@ -423,6 +455,9 @@ class BeamNGBridge(object):
         ros_rate = 10
         rate = rospy.Rate(ros_rate)  # todo add threading
         if self.running:
+            for static_tf in self._static_tf_frames:
+                static_tf.header.stamp = rospy.Time.now()
+                self._static_tf_broadcaster.sendTransform(static_tf)
             while not rospy.is_shutdown():
                 current_time = rospy.Time.now()
                 if self._vehicle_publisher is not None:

@@ -7,10 +7,10 @@
       ],
       "field_of_view_y": 120,
       "is_render_colours": true,
-      "is_render_depth": true,
-      "is_render_annotations": true,
-      "is_render_instance": true,
-      "bounding_box": true,
+      "is_render_depth": false,
+      "is_render_annotations": false,
+      "is_render_instance": false,
+      "bounding_box": false,
       "requested_update_time": 0.1
     }
   },
@@ -22,8 +22,7 @@
       "rays_per_second": 1310720,
       "frequency": 10,
       "horizontal_angle": 360,
-      "max_distance": 85,
-      "direction": [0, -1, 0]
+      "max_distance": 85
     }
   },
   "Ultrasonic": {

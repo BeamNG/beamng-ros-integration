@@ -428,7 +428,8 @@ class LidarPublisher(SensorDataPublisher):
     def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
         self.listener = tf.TransformListener()
-        self.frame_lidar_sensor = 'lidar_link'
+        sensor_name = topic_id.split("/")[-1]
+        self.frame_lidar_sensor = f'{vehicle.vid}_{sensor_name}_link'
 
     def _make_msg(self):
         header = std_msgs.msg.Header()

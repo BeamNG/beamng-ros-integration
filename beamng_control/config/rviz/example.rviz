@@ -9,8 +9,6 @@ Panels:
         - /TF1
         - /TF1/Frames1
         - /TF1/Tree1
-        - /TF1/Tree1/ego_vehicle1
-        - /TF1/Tree1/map1
         - /PointCloud21
         - /MarkerArray1
       Splitter Ratio: 0.5
@@ -32,7 +30,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: colour
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -69,10 +67,6 @@ Visualization Manager:
           Value: true
         lidar_link:
           Value: true
-        map:
-          Value: true
-        some_other_bloke:
-          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -82,9 +76,6 @@ Visualization Manager:
       Tree:
         ego_vehicle:
           lidar_link:
-            {}
-        map:
-          some_other_bloke:
             {}
       Update Interval: 0
       Value: true
@@ -123,7 +114,7 @@ Visualization Manager:
       Marker Topic: /beamng_control/road_network
       Name: MarkerArray
       Namespaces:
-        beamng_control: true
+        {}
       Queue Size: 1
       Value: true
     - Class: rviz/Image
@@ -190,7 +181,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: some_other_bloke
+    Fixed Frame: ego_vehicle
     Frame Rate: 30
   Name: root
   Tools:

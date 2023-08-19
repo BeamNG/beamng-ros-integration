@@ -52,13 +52,14 @@
         {
           "name": "front_cam",
           "type": "Camera.default",
-          "position": [-0.3, 2, 1],
-          "rotation": [0, -1, 0]
+          "position": [-0.3, 2, 1],s
+          "rotation": [0, 0, 0]
         },
         {
           "name": "lidar0",
           "type": "Lidar.default",
-          "position": [0, 0, 1.7]
+          "position": [0, 0, 1.7],
+          "rotation": [0, 0, 0]
         },
         {
           "name": "lidar_noise",
