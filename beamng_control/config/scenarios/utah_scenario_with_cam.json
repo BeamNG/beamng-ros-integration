@@ -8,15 +8,15 @@
     {
       "name": "ego_vehicle",
       "model": "pickup",
-      //      "position": [570.9158935546875, 12.969861030578613, 140.009033203125],
-      "position": [568.908, 13.422,  139.565],
+      "position": [570.9158935546875, 12.969861030578613, 140.009033203125],
       "rotation": [0, 0, 0, 1],
       "sensors_automation": [
         {
           "name": "front_cam",
           "type": "Camera.default",
           "position": [0.3, -2.1, 1],
-          "rotation": [0, -1, 0]
+          "direction": [0, -1, 0],
+          "rotation": [0, 0, 10]
         }
       ]
     }

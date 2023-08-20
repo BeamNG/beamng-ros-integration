@@ -162,9 +162,10 @@ class BeamNGBridge(object):
         static_transform_stamped.transform.translation.y = float(translation[1])
         static_transform_stamped.transform.translation.z = float(translation[2])
 
+        # todo: set this correctly once I know what the dir parameter is
         quat = tf.transformations.quaternion_from_euler(float(rotation[0]),
-                                                        float(rotation[1]),
-                                                        float(rotation[2]))
+                                                        float(0),
+                                                        float(-180))  # RPY to convert
 
         static_transform_stamped.transform.rotation.x = quat[0]
         static_transform_stamped.transform.rotation.y = quat[1]
