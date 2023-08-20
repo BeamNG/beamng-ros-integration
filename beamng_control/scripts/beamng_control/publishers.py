@@ -429,7 +429,7 @@ class LidarPublisher(SensorDataPublisher):
         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
         self.listener = tf.TransformListener()
         sensor_name = topic_id.split("/")[-1]
-        self.frame_lidar_sensor = f'{vehicle.vid}_{sensor_name}_link'
+        self.frame_lidar_sensor = f'{vehicle.vid}_{sensor_name}'
 
     def _make_msg(self):
         header = std_msgs.msg.Header()
@@ -610,4 +610,6 @@ class NetworkPublisher(BNGPublisher):
         self.current_time = current_time
         if self._road_network is None:
             self.set_up_road_network_viz()
+        for marker in self._road_network.markers:
+            marker.header.stamp = self.current_time
         self._pub.publish(self._road_network.markers)

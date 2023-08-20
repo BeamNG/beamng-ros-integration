@@ -153,11 +153,10 @@ class BeamNGBridge(object):
         return vehicle
 
     @staticmethod
-    def get_stamped_static_tf_frame(translation, rotation, vehicle_name: str, child_frame: str,
-                                    frame_id: str = 'map', ):
+    def get_stamped_static_tf_frame(translation, rotation, vehicle_name: str, sensor_name: str):
         static_transform_stamped = geometry_msgs.msg.TransformStamped()
-        static_transform_stamped.header.frame_id = frame_id
-        static_transform_stamped.child_frame_id = f"{vehicle_name}_{child_frame}_link"
+        static_transform_stamped.header.frame_id = vehicle_name
+        static_transform_stamped.child_frame_id = f"{vehicle_name}_{sensor_name}"
 
         static_transform_stamped.transform.translation.x = float(translation[0])
         static_transform_stamped.transform.translation.y = float(translation[1])
@@ -202,9 +201,8 @@ class BeamNGBridge(object):
                 if sensor_publisher is not None:
                     static_sensor_frame = self.get_stamped_static_tf_frame(translation=s_spec['position'],
                                                                            rotation=s_spec['rotation'],
-                                                                           vehicle_name=v_spec['name'],
-                                                                           frame_id=v_spec['name'],
-                                                                           child_frame=s_spec["name"])
+                                                                           vehicle_name=vehicle.vid,
+                                                                           sensor_name=name)
                     self._static_tf_frames.append(static_sensor_frame)
                     self._publishers.append(sensor_publisher(sensor, f"{NODE_NAME}/{vehicle.vid}/{name}", vehicle))
             # for n_spec in noise_sensors:

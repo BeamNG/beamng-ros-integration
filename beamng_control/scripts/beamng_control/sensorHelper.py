@@ -23,9 +23,6 @@ def get_lidar(bng,
               vertical_angle,
               max_distance,
               **spec):
-    # rospy.logdebug('Lidar visualization cannot '
-    #                'be enabled through the beamng ros integration')
-    # spec['visualized'] = False
     if 'shmem' in spec and spec['shmem']:
         spec.pop('shmem')
         rospy.logwarn('The Lidar sensor provides no shared memory support, '

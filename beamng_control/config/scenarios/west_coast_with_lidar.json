@@ -1,6 +1,6 @@
 {
   "version": 0.1,
-  "level": "Utah",
+  "level": "west_coast_usa",
   "name": "road_network",
   "mode": "None",
   "network_vizualization": "on",
@@ -8,7 +8,7 @@
     {
       "name": "ego_vehicle",
       "model": "pickup",
-      "position": [570.9158935546875, 12.969861030578613, 140.009033203125],
+      "position": [568.908, 13.422,  148.565],
       "rotation": [0, 0, 0, 1],
       "sensors_automation": [
         {
