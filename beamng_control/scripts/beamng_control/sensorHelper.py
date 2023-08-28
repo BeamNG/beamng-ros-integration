@@ -112,6 +112,7 @@ def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resoluti
                                  vehicle=vehicle,
                                  pos=position,
                                  dir=(0, -1, 0),
+                                 up = (0, 0, 1),
                                  field_of_view_y=field_of_view_y,
                                  resolution=resolution,
                                  is_using_shared_memory=False,
