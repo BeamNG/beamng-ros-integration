@@ -15,8 +15,7 @@
           "name": "front_cam",
           "type": "Camera.default",
           "position": [0.3, -2.1, 1],
-          "direction": [0, -1, 0],
-          "rotation": [0, 0]
+          "rotation": [0, 45]
         }
       ]
     }

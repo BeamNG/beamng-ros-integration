@@ -18,7 +18,7 @@ class SensorSpecificationError(TypeError):
 
 def rotate_direction_vector(vec, pitch, yaw):
     R_pitch = np.array([[np.cos(pitch), 0, np.sin(pitch)],
-                        [0, 1, 0]
+                        [0, 1, 0],
                         [-np.sin(pitch), 0, np.cos(pitch)]])
     R_yaw = np.array([[np.cos(yaw), -np.sin(yaw), 0],
                       [np.sin(yaw), np.cos(yaw), 0],
@@ -29,7 +29,7 @@ def rotate_direction_vector(vec, pitch, yaw):
 def get_bounding_box_center(bbox):
     rbl = np.array(bbox['rear_bottom_left'])
     fbr = np.array(bbox['front_bottom_right'])
-    rtl = np.array([bbox['rear_top_left']])
+    rtl = np.array(bbox['rear_top_left'])
     center = rbl + ((fbr - rbl) / 2) + ((rtl - rbl) / 2)
     return center
 
@@ -57,7 +57,7 @@ def get_lidar(bng,
                                   max_distance=max_distance,
                                   is_using_shared_memory=False,
                                   **spec)
-        center = vehicle.get_bounding_box_center(vehicle.get_bbox())
+        center = get_bounding_box_center(vehicle.get_bbox())
         lidar_direction = center - rotate_direction_vector(position, rotation[0], rotation[1])
         lidar.set_direction((lidar_direction[0], lidar_direction[1], lidar_direction[2]))
     except TypeError as e:
@@ -121,8 +121,12 @@ def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resoluti
                                  resolution=resolution,
                                  is_using_shared_memory=False,
                                  **spec)
-        center = vehicle.get_bounding_box_center(vehicle.get_bbox())
-        camera_direction = center - rotate_direction_vector(position, rotation[0], rotation[1])
+        center = position #get_bounding_box_center(vehicle.get_bbox())[0]
+        rospy.logwarn(center)
+        camera_direction = center - rotate_direction_vector(position,
+                                                            rotation[0] * 180 / np.pi,
+                                                            rotation[1] * 180 / np.pi)
+        rospy.logwarn(camera_direction)
         cam.set_direction((camera_direction[0], camera_direction[1], camera_direction[2]))
 
 
