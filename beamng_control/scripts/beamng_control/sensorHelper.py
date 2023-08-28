@@ -1,5 +1,6 @@
 import rospy
 import copy
+import numpy as np
 
 import beamngpy.sensors as bng_sensors
 from beamng_control.publishers import LidarPublisher, CameraPublisher
@@ -80,6 +81,24 @@ def get_ultrasonic(position, rotation, **spec):
     return us
 
 
+def rotate_camera(vec, pitch, yaw):
+    R_pitch = np.array([[np.cos(pitch), 0, np.sin(pitch)],
+                        [0, 1, 0]
+                        [-np.sin(pitch), 0, np.cos(pitch)]])
+    R_yaw = np.array([[np.cos(yaw), -np.sin(yaw), 0],
+                      [np.sin(yaw), np.cos(yaw), 0],
+                      [0, 0, 1]])
+    return R_yaw @ R_pitch @ vec
+
+
+def get_bounding_box_center(bbox):
+    rbl = np.array(bbox['rear_bottom_left'])
+    fbr = np.array(bbox['front_bottom_right'])
+    rtl = np.array([bbox['rear_top_left']])
+    center = rbl + ((fbr - rbl) / 2) + ((rtl - rbl) / 2)
+    return center
+
+
 def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resolution, **spec):
     bbox = spec.pop('bounding_box')
     if 'is_using_shared_memory' in spec:
@@ -92,11 +111,16 @@ def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resoluti
                                  bng=bng,
                                  vehicle=vehicle,
                                  pos=position,
-                                 dir=rotation,
+                                 dir=(0, -1, 0),
                                  field_of_view_y=field_of_view_y,
                                  resolution=resolution,
                                  is_using_shared_memory=False,
                                  **spec)
+        center = vehicle.get_bounding_box_center(vehicle.get_bbox())
+        camera_direction = center - rotate_camera(position, rotation[0], rotation[1])
+        cam.set_direction((camera_direction[0], camera_direction[1], camera_direction[2]))
+
+
     except TypeError as e:
         raise SensorSpecificationError('Could not get Camera instance, the '
                                        'json specification provided an'
