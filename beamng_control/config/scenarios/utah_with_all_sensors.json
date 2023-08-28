@@ -43,19 +43,19 @@
           "name":"parking_sensor",
           "type":"Ultrasonic.smallrange",
           "position":[0, 1, 2],
-          "rotation":[0, 0, 0]
+          "rotation": [0, 0]
         },
         {
           "name": "front_cam",
           "type": "Camera.default",
           "position": [-0.3, 1, 1],
-          "rotation": [0, 0, 0]
+          "rotation": [0, 0]
         },
         {
           "name": "lidar0",
           "type": "Lidar.default",
           "position": [0, 0, 1.7],
-          "rotation": [0, 0, 0]
+          "rotation": [0, 0]
         }
       ]
     }

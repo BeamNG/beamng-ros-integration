@@ -15,7 +15,7 @@
           "name": "lidar0",
           "type": "Lidar.default",
           "position": [0, 0, 2.0],
-          "rotation": [0, -1, 0]
+          "rotation": [0, 0]
         }
       ]
     }

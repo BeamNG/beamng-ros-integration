@@ -5,7 +5,7 @@
         "name": "front_camera",
         "type": "Camera.default",
           "position": [-0.3, 2, 1],
-          "rotation": [0, -1, 0]
+          "rotation": [0, 0]
       },
       {
         "name": "imu0",
@@ -14,7 +14,8 @@
           0.73,
           0.51,
           0.8
-        ]
+        ],
+        "rotation": [0, 0]
       },
       {
         "name": "lidar",
@@ -23,7 +24,8 @@
           0,
           0,
           1.7
-        ]
+        ],
+        "rotation": [0, 0]
       }
     ]
   }
