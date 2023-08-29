@@ -17,21 +17,13 @@ class SensorSpecificationError(TypeError):
 
 
 def rotate_direction_vector(vec, pitch, yaw):
-    R_pitch = np.array([[np.cos(pitch), 0, np.sin(pitch)],
-                        [0, 1, 0],
-                        [-np.sin(pitch), 0, np.cos(pitch)]])
-    R_yaw = np.array([[np.cos(yaw), -np.sin(yaw), 0],
-                      [np.sin(yaw), np.cos(yaw), 0],
-                      [0, 0, 1]])
-    return R_yaw @ R_pitch @ vec
-
-
-def get_bounding_box_center(bbox):
-    rbl = np.array(bbox['rear_bottom_left'])
-    fbr = np.array(bbox['front_bottom_right'])
-    rtl = np.array(bbox['rear_top_left'])
-    center = rbl + ((fbr - rbl) / 2) + ((rtl - rbl) / 2)
-    return center
+    Rx = np.array([[1, 0, 0],
+                   [0, np.cos(pitch), np.sin(pitch)],
+                   [0, -np.sin(pitch), np.cos(pitch)]])
+    Rz = np.array([[np.cos(yaw), -np.sin(yaw), 0],
+                   [np.sin(yaw), np.cos(yaw), 0],
+                   [0, 0, 1]])
+    return Rx @ Rz @ vec
 
 
 def get_lidar(bng,
@@ -57,9 +49,13 @@ def get_lidar(bng,
                                   max_distance=max_distance,
                                   is_using_shared_memory=False,
                                   **spec)
-        center = get_bounding_box_center(vehicle.get_bbox())
-        lidar_direction = center - rotate_direction_vector(position, rotation[0], rotation[1])
-        lidar.set_direction((lidar_direction[0], lidar_direction[1], lidar_direction[2]))
+
+        rotation = np.radians(rotation)
+        new_position = rotate_direction_vector(vec=position,
+                                               pitch=rotation[0],
+                                               yaw=rotation[1])
+        lidar.set_direction((new_position[0], new_position[1], new_position[2]))
+
     except TypeError as e:
         raise SensorSpecificationError('Could not get Lidar instance, the '
                                        'json specification provided an'
@@ -90,9 +86,15 @@ def get_ultrasonic(position, rotation, **spec):
     spec['near_far'] = (spec.pop('min_distance'),
                         spec.pop('max_distance'))
     try:
-        us = bng_sensors.Ultrasonic(position,
-                                    rotation,
+        us = bng_sensors.Ultrasonic(pos=position,
+                                    dir=(0, -1, 0),
+                                    up=(0, 0, 1),
                                     **spec)
+        rotation = np.radians(rotation)
+        new_position = rotate_direction_vector(vec=position,
+                                               pitch=rotation[0],
+                                               yaw=rotation[1])
+        us.set_direction((new_position[0], new_position[1], new_position[2]))
     except TypeError as e:
         raise SensorSpecificationError('Could not get ultrasonic sensor '
                                        'instance, the json specification '
@@ -111,26 +113,21 @@ def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resoluti
         spec.pop('is_using_shared_memory')
 
     try:
+        # we yaw then pitch
         cam = bng_sensors.Camera(name=name,
                                  bng=bng,
                                  vehicle=vehicle,
                                  pos=position,
                                  dir=(0, -1, 0),
-                                 # up=(0, 0, 1),
+                                 up=(0, 0, 1),
                                  field_of_view_y=field_of_view_y,
                                  resolution=resolution,
                                  is_using_shared_memory=False,
                                  **spec)
-
-        rospy.logwarn(f'rot degs: {rotation}')
         rotation = np.radians(rotation)
-        rospy.logwarn(f'rot rads: {rotation}')
         new_position = rotate_direction_vector(vec=position,
                                                pitch=rotation[0],
                                                yaw=rotation[1])
-        camera_direction = position - new_position
-        rospy.logwarn(camera_direction)
-        cam.set_position((position[0], position[1], position[2]))
         cam.set_direction((new_position[0], new_position[1], new_position[2]))
 
 

@@ -16,7 +16,7 @@
           "type": "Camera.default",
           "position": [0.3, -2.5, 1],
           "rotation": [0, 0]
-        },
+        }
       ]
     }
   ]
