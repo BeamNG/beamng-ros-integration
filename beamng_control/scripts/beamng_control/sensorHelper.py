@@ -50,12 +50,6 @@ def get_lidar(bng,
                                   is_using_shared_memory=False,
                                   **spec)
 
-        rotation = np.radians(rotation)
-        new_position = rotate_direction_vector(vec=position,
-                                               pitch=rotation[0],
-                                               yaw=rotation[1])
-        lidar.set_direction((new_position[0], new_position[1], new_position[2]))
-
     except TypeError as e:
         raise SensorSpecificationError('Could not get Lidar instance, the '
                                        'json specification provided an'
@@ -129,7 +123,6 @@ def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resoluti
                                                pitch=rotation[0],
                                                yaw=rotation[1])
         cam.set_direction((new_position[0], new_position[1], new_position[2]))
-
 
     except TypeError as e:
         raise SensorSpecificationError('Could not get Camera instance, the '
