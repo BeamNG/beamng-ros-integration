@@ -116,18 +116,22 @@ def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resoluti
                                  vehicle=vehicle,
                                  pos=position,
                                  dir=(0, -1, 0),
-                                 up=(0, 0, 1),
+                                 # up=(0, 0, 1),
                                  field_of_view_y=field_of_view_y,
                                  resolution=resolution,
                                  is_using_shared_memory=False,
                                  **spec)
-        center = position #get_bounding_box_center(vehicle.get_bbox())[0]
-        rospy.logwarn(center)
-        camera_direction = center - rotate_direction_vector(position,
-                                                            rotation[0] * 180 / np.pi,
-                                                            rotation[1] * 180 / np.pi)
+
+        rospy.logwarn(f'rot degs: {rotation}')
+        rotation = np.radians(rotation)
+        rospy.logwarn(f'rot rads: {rotation}')
+        new_position = rotate_direction_vector(vec=position,
+                                               pitch=rotation[0],
+                                               yaw=rotation[1])
+        camera_direction = position - new_position
         rospy.logwarn(camera_direction)
-        cam.set_direction((camera_direction[0], camera_direction[1], camera_direction[2]))
+        cam.set_position((position[0], position[1], position[2]))
+        cam.set_direction((new_position[0], new_position[1], new_position[2]))
 
 
     except TypeError as e:

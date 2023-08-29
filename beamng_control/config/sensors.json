@@ -5,7 +5,7 @@
         256,
         256
       ],
-      "field_of_view_y": 120,
+      "field_of_view_y": 90,
       "is_render_colours": true,
       "is_render_depth": false,
       "is_render_annotations": false,
