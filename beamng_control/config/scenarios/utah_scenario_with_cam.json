@@ -8,7 +8,7 @@
     {
       "name": "ego_vehicle",
       "model": "pickup",
-      "position": [570.9158935546875, 12.969861030578613, 140.009033203125],
+      "position": [537.24, 25.95, 142.16],
       "rotation": [0, 0, 0, 1],
       "sensors_automation": [
         {

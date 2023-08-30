@@ -13,6 +13,7 @@ import rospkg
 import actionlib
 import tf
 import tf2_ros
+from tf.transformations import quaternion_from_euler, quaternion_multiply
 import geometry_msgs.msg
 
 import beamngpy as bngpy
@@ -153,7 +154,6 @@ class BeamNGBridge(object):
             vehicle.attach_sensor(n_name, noise)
         return vehicle
 
-
     @staticmethod
     def get_stamped_static_tf_frame(translation, rotation, vehicle_name: str, sensor_name: str):
         static_transform_stamped = geometry_msgs.msg.TransformStamped()
@@ -168,6 +168,10 @@ class BeamNGBridge(object):
                                                         float(rotation[0]),
                                                         float(rotation[1]))  # RPY to convert
 
+        alignment_quat = np.array([0, 0, 0, 1])  # sets the forward direction as -y
+        # alignment_quat = np.array([0, 1, 0, 0])  # sets the forward direction as -y
+        quat = quaternion_multiply(alignment_quat, quat)
+        quat /= np.linalg.norm(quat)
         static_transform_stamped.transform.rotation.x = quat[0]
         static_transform_stamped.transform.rotation.y = quat[1]
         static_transform_stamped.transform.rotation.z = quat[2]
@@ -249,7 +253,8 @@ class BeamNGBridge(object):
             self._vehicle_publisher = VehiclePublisher(vehicle, NODE_NAME)  # we need this to be published first for tf
             scenario.add_vehicle(vehicle,
                                  pos=v_spec['position'],
-                                 rot_quat=v_spec['rotation'])
+                                 rot_quat=v_spec['rotation']
+                                 )
             vehicle_list.append(vehicle)
 
         on_scenario_start = list()
@@ -455,11 +460,12 @@ class BeamNGBridge(object):
         ros_rate = 10
         rate = rospy.Rate(ros_rate)  # todo add threading
         if self.running:
-            for static_tf in self._static_tf_frames:
-                static_tf.header.stamp = rospy.Time.now()
-                self._static_tf_broadcaster.sendTransform(static_tf)
+
             while not rospy.is_shutdown():
                 current_time = rospy.Time.now()
+                for static_tf in self._static_tf_frames:
+                    static_tf.header.stamp = current_time
+                    self._static_tf_broadcaster.sendTransform(static_tf)
                 if self._vehicle_publisher is not None:
                     self._vehicle_publisher.publish(current_time)
                 for pub in self._publishers:

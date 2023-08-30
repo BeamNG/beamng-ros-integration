@@ -16,6 +16,7 @@ import threading
 import sensor_msgs
 import geometry_msgs.msg as geom_msgs
 import std_msgs.msg
+from tf.transformations import quaternion_from_euler, quaternion_multiply
 
 import beamngpy.sensors as bng_sensors
 # from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
@@ -453,6 +454,7 @@ class LidarPublisher(SensorDataPublisher):
             points = np.zeros((0, 3))
             colours = np.zeros((0,))
             trans_map = np.zeros(3)
+
         pointcloud_data = np.zeros(points.shape[0], dtype=pointcloud_fields)
         pointcloud_data['x'] = points[:, 0] - trans_map[0]
         pointcloud_data['y'] = points[:, 1] - trans_map[1]
@@ -475,6 +477,9 @@ class VehiclePublisher(BNGPublisher):
         self.frame_map = 'map'
         self.tf_msg.header.frame_id = self.frame_map
         self.tf_msg.child_frame_id = self._vehicle.vid
+        self.alignment_quat = np.array([0, 1, 0, 0])  # sets the forward direction as -y
+        # self.alignment_quat = np.array([0, 0, 0, 1])  # sets the forward direction as -y
+        # self.alignment_quat = np.array([1, 0, 0, 0])
         self.current_time = rospy.get_rostime()
 
         self.node_name = node_name
@@ -504,10 +509,18 @@ class VehiclePublisher(BNGPublisher):
         self.tf_msg.transform.translation.y = data['pos'][1]
         self.tf_msg.transform.translation.z = data['pos'][2]
 
-        self.tf_msg.transform.rotation.x = data['rotation'][0]
-        self.tf_msg.transform.rotation.y = data['rotation'][1]
-        self.tf_msg.transform.rotation.z = data['rotation'][2]
-        self.tf_msg.transform.rotation.w = data['rotation'][3]
+        quat_orientation = np.array([data['rotation'][0],
+                                     data['rotation'][1],
+                                     data['rotation'][2],
+                                     data['rotation'][3]])
+
+        quat_orientation = quaternion_multiply(self.alignment_quat, quat_orientation)
+        quat_orientation /= np.linalg.norm(quat_orientation)
+
+        self.tf_msg.transform.rotation.x = quat_orientation[0]  # data['rotation'][0]
+        self.tf_msg.transform.rotation.y = quat_orientation[1]  # data['rotation'][1]
+        self.tf_msg.transform.rotation.z = quat_orientation[2]  # data['rotation'][2]
+        self.tf_msg.transform.rotation.w = quat_orientation[3]  # data['rotation'][3]
         self._broadcaster_pose.sendTransform(self.tf_msg)
 
     def state_to_marker(self, data, marker_ns):
