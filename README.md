@@ -1,6 +1,6 @@
 # BeamNG ROS Integration
 
-## About 
+## About
 
 This repository contains packages to support the interoperability between [BeamNG.tech](https://beamng.tech/) and ROS.
 BeamNG.tech is a driving simulation platform, suitable for commercial and academic use.
@@ -78,6 +78,10 @@ recommended to consult the documentation on BeamNG.drive here:
 [https://documentation.beamng.com/][8]
 
 
+## Contributions
+
+We always welcome user contributions, be sure to check out our [contribution guidelines][9] first, before starting your work.
 
 [1]: https://github.com/BeamNG/BeamNGpy
 [8]: https://documentation.beamng.com/
+[9]: https://github.com/BeamNG/BeamNG-ROS-Integration/blob/master/contributing.md
