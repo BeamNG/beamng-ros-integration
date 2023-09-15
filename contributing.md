@@ -12,12 +12,12 @@ When contributing to this repository, please first discuss the change you wish t
 
 ### Accepting the Contributor License Agreement
 
-If you are a submitting work on behalf of yourself, then read through [this form](https://github.com/BeamNG/BeamNG-ROS-Integration/blob/dev/CLA-individual.pdf) and send a mail to tech@beamng.gmbh agreeing to the contributor license agreement. The mail should contain your full name, your GitHub username, your address, your phone number, email and explicitly state that you agree to the **"BeamNG-ROS-Integration Individual Contributor License Agreement"**.
+If you are a submitting work on behalf of yourself, then read through [this form](https://github.com/BeamNG/BeamNG-ROS-Integration/blob/master/CLA-individual.pdf) and send a mail to tech@beamng.gmbh agreeing to the contributor license agreement. The mail should contain your full name, your GitHub username, your address, your phone number, email and explicitly state that you agree to the **"BeamNG-ROS-Integration Individual Contributor License Agreement"**.
 
-If you are a submitting work on behalf of your employer, then read through [this form](https://github.com/BeamNG/BeamNG-ROS-Integration/blob/dev/CLA-entity.pdf) and send a mail to tech@beamng.gmbh agreeing to the contributor license agreement. The mail should contain your full name, the name of your organization, your GitHub username, your address, your phone number, email and explicitly state that you agree to the **"BeamNG-ROS-Integration Entity Contributor License Agreement"**.
+If you are a submitting work on behalf of your employer, then read through [this form](https://github.com/BeamNG/BeamNG-ROS-Integration/blob/master/CLA-entity.pdf) and send a mail to tech@beamng.gmbh agreeing to the contributor license agreement. The mail should contain your full name, the name of your organization, your GitHub username, your address, your phone number, email and explicitly state that you agree to the **"BeamNG-ROS-Integration Entity Contributor License Agreement"**.
 
 ### Submitting Your Contribution
 
 1. Create a fork of the repository.
-2. Using dev as a base branch create your own branch with a meaningful name and modify/add existing code following the PEP 8 style guide. Add tests where appropriate.
+2. Using master as a base branch create your own branch with a meaningful name and modify/add existing code following the PEP 8 style guide. Add tests where appropriate.
 3. Push your branch to your fork and create a pull request from your branch to the dev branch. Posting the pull request will trigger a git action requesting you to accept the contribution license agreement.
