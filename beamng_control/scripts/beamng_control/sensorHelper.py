@@ -2,7 +2,10 @@ import rospy
 import copy
 
 import beamngpy.sensors as bng_sensors
-#from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
+from beamng_control.publishers import LidarPublisher, CameraPublisher, UltrasonicPublisher
+
+
+# from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
 
 
 class SensorSpecificationError(TypeError):
@@ -12,26 +15,31 @@ class SensorSpecificationError(TypeError):
     pass
 
 
-def get_lidar(position,
-              direction,
+def get_lidar(bng,
+              vehicle,
+              position,
+              rotation,
               vertical_resolution,
               vertical_angle,
               max_distance,
               **spec):
-    rospy.logdebug('Lidar visualization cannot '
-                   'be enabled through the beamng ros integration')
-    spec['visualized'] = False
-    if 'shmem' in spec and spec['shmem']:
-        spec.pop('shmem')
-        rospy.logwarn('The Lidar sensor provides no shared memory support, '
-                      'sensor data is always shared through sockets.')
+    # rospy.logdebug('Lidar visualization cannot '
+    #                'be enabled through the beamng ros integration')
+    # spec['visualized'] = False
+    if 'is_using_shared_memory' in spec:
+        rospy.logerr('Shared memory is automatically disabled '
+                     'for the camera sensor.')
+        spec.pop('is_using_shared_memory')
+
     try:
-        lidar = bng_sensors.Lidar(offset=position,
-                                  direction=direction,
-                                  vres=vertical_resolution,
-                                  vangle=vertical_angle,
-                                  max_dist=max_distance,
-                                  shmem=False,
+        lidar = bng_sensors.Lidar(bng=bng,
+                                  vehicle=vehicle,
+                                  pos=position,
+                                  dir=rotation,
+                                  vertical_resolution=vertical_resolution,
+                                  vertical_angle=vertical_angle,
+                                  max_distance=max_distance,
+                                  is_using_shared_memory=False,
                                   **spec)
     except TypeError as e:
         raise SensorSpecificationError('Could not get Lidar instance, the '
@@ -42,29 +50,24 @@ def get_lidar(position,
                                        f'message:\n{e}')
     return lidar
 
-
-def get_imu(position=None, node=None, **spec):
-    if not (bool(position is None) ^ bool(node is None)):
-        rospy.logerr('The IMU sensor definition needs to specify either'
-                     ' a node or a position for the sensor placement.')
+def get_ultrasonic(bng,
+                   name,
+                   vehicle,
+                   position,
+                   rotation,
+                   range_min_cutoff, 
+                   range_direct_max_cutoff,
+                   **spec):
+            
     try:
-        imu = bng_sensors.IMU(node=node, pos=position)
-    except TypeError as e:
-        raise SensorSpecificationError('Could not get IMU instance, the '
-                                       'json specification provided an'
-                                       'unexpected input. List of possible'
-                                       f'unexpected inputs:\n{spec}\n'
-                                       '\nOriginal error '
-                                       f'message:\n{e}')
-    return imu
-
-
-def get_ultrasonic(position, rotation, **spec):
-    spec['near_far'] = (spec.pop('min_distance'),
-                        spec.pop('max_distance'))
-    try:
-        us = bng_sensors.Ultrasonic(position,
-                                    rotation,
+        us = bng_sensors.Ultrasonic(bng=bng,
+                                    name=name,
+                                    vehicle=vehicle,
+                                    pos=position,
+                                    dir=rotation,
+                                    range_min_cutoff=range_min_cutoff, 
+                                    range_direct_max_cutoff=range_direct_max_cutoff,
+                                    
                                     **spec)
     except TypeError as e:
         raise SensorSpecificationError('Could not get ultrasonic sensor '
@@ -76,7 +79,9 @@ def get_ultrasonic(position, rotation, **spec):
     return us
 
 
-def get_camera(position, rotation, fov, resolution, **spec):
+
+
+def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resolution, **spec):
     if 'bounding_box' in spec:
         if spec['bounding_box']:
             rospy.logerr('Bounding boxes are not supported '
@@ -84,17 +89,20 @@ def get_camera(position, rotation, fov, resolution, **spec):
         bbox = spec.pop('bounding_box')
     bbox = False  # remove when bboxes are working
 
-    if 'shmem' in spec:
+    if 'is_using_shared_memory' in spec:
         rospy.logerr('Shared memory is automatically disabled '
                      'for the camera sensor.')
-        spec.pop('shmem')
+        spec.pop('is_using_shared_memory')
 
     try:
-        cam = bng_sensors.Camera(position,
-                                 rotation,
-                                 fov,
-                                 resolution,
-                                 shmem=False,
+        cam = bng_sensors.Camera(name=name,
+                                 bng=bng,
+                                 vehicle=vehicle,
+                                 pos=position,
+                                 dir=rotation,
+                                 field_of_view_y=field_of_view_y,
+                                 resolution=resolution,
+                                 is_using_shared_memory=False,
                                  **spec)
     except TypeError as e:
         raise SensorSpecificationError('Could not get Camera instance, the '
@@ -103,7 +111,7 @@ def get_camera(position, rotation, fov, resolution, **spec):
                                        f'unexpected inputs:\n{spec}\n'
                                        '\nOriginal error '
                                        f'message:\n{e}')
-    if bbox and not(cam.instance and cam.annotation):
+    if bbox and not (cam.is_render_instance and cam.is_render_annotations):
         rospy.logerr('Enabled annotations and instance annotations'
                      'are required to generate images with bounding box.')
     else:
@@ -139,6 +147,21 @@ def get_lidar_noise_sensor(sensor, **spec):
     return noise
 
 
+def get_imu(position=None, node=None, **spec):
+    if not (bool(position is None) ^ bool(node is None)):
+        rospy.logerr('The IMU sensor definition needs to specify either'
+                     ' a node or a position for the sensor placement.')
+    try:
+        imu = bng_sensors.IMU(node=node, pos=position)
+    except TypeError as e:
+        raise SensorSpecificationError('Could not get IMU instance, the '
+                                       'json specification provided an'
+                                       'unexpected input. List of possible'
+                                       f'unexpected inputs:\n{spec}\n'
+                                       '\nOriginal error '
+                                       f'message:\n{e}')
+    return imu
+
 def select_sensor_definition(sensor_type_name, sensor_defs):
     """
     Returns type of sensor (f.ex. 'imu')
@@ -154,8 +177,37 @@ def select_sensor_definition(sensor_type_name, sensor_defs):
         sensor_spec = sensor_spec[t]
     return sensor_type[0], sensor_spec
 
+def get_attached_sensor(sensor_type, all_sensor_defs, dyn_sensor_properties=None):
+    """
+    Args:
+    sensor_type(string): used to look up static part of sensor definition
+    all_sensor_defs(dict): containing definitions for all sensors for
+    attributes that multiple sensors may share across different vehicles
+    dyn_sensor_properties(dict): attributes that vary per sensor model,
+    f.ex. position, rotation, etc.
+    """
+    global _sensor_getters
+    sensor_class_name, static_sensor_def = select_sensor_definition(sensor_type, all_sensor_defs)
+    if sensor_class_name not in _sensor_getters:
+        rospy.logerr(f'Sensor of type {sensor_class_name} not available.')
+    sensor_def = dict()
+    if static_sensor_def:
+        sensor_def.update(static_sensor_def)
+    if dyn_sensor_properties:
+        sensor_def.update(dyn_sensor_properties)
+    try:
+        sensor = _sensor_getters[sensor_class_name](**sensor_def)
+    except TypeError as err:
+        raise SensorSpecificationError(f'The {sensor_class_name} sensor '
+                                       'definition is missing one or more '
+                                       'fields. These fields '
+                                       f'where defined:\n{sensor_def}\n'
+                                       f'Original error message:\n{err}')
+    return sensor
 
-def get_sensor(sensor_type, all_sensor_defs, dyn_sensor_properties=None):
+
+
+def get_ad_hoc_sensor(sensor_type, all_sensor_defs, bng=None, vehicle=None, name=None, dyn_sensor_properties=None):
     """
     Args:
     sensor_type(string): used to look up static part of sensor definition
@@ -175,25 +227,49 @@ def get_sensor(sensor_type, all_sensor_defs, dyn_sensor_properties=None):
         sensor_def.update(dyn_sensor_properties)
     rospy.logdebug(f'sensor_def: {sensor_def}')
     try:
-        sensor = _sensor_getters[sensor_class_name](**sensor_def)
+        if sensor_class_name in _ad_hoc_sensors:
+            sensor = _sensor_getters[sensor_class_name](bng=bng,
+                                                        name=name,
+                                                        vehicle=vehicle,
+                                                        **sensor_def)
+            sensor_publisher = _sensor_ad_hoc_type_publisher_getter[sensor_class_name]
+        else:
+            sensor = _sensor_getters[sensor_class_name](**sensor_def)
+            sensor_publisher = None
     except TypeError as err:
         raise SensorSpecificationError(f'The {sensor_class_name} sensor '
                                        'definition is missing one or more '
                                        'fields. These fields '
                                        f'where defined:\n{sensor_def}\n'
                                        f'Original error message:\n{err}')
-    return sensor
+    return sensor, sensor_publisher
 
+_ad_hoc_sensors = ['Camera',
+                   'Lidar',
+                   'CameraNoise',
+                   'LidarNoise',
+                   'AdvancedIMU',  # unsure about this one
+                   'Ultrasonic',
+                   'PowerTrain',  # unsure about this one
+                   'Radar',  # unsure about this one
+                   'meshsensor',  # unsure about this one
+                  ]
+_sensor_ad_hoc_type_publisher_getter = {
+    'Lidar': LidarPublisher,
+    'Camera': CameraPublisher,
+    'Ultrasonic': UltrasonicPublisher
+}
 
 _sensor_getters = {
-    'IMU': get_imu,
     'Damage': bng_sensors.Damage,
     'Timer': bng_sensors.Timer,
     'GForces': bng_sensors.GForces,
-    'Ultrasonic': get_ultrasonic,
     'Electrics': bng_sensors.Electrics,
+    'IMU': get_imu,
     'Camera': get_camera,
-    'Lidar': get_lidar,
-    'CameraNoise': get_camera_noise_sensor,
-    'LidarNoise': get_lidar_noise_sensor
+    'Ultrasonic': get_ultrasonic,
+    'Lidar': get_lidar
+    # 'Ultrasonic': bng_sensors.Ultrasonic,
+    # 'CameraNoise': get_camera_noise_sensor,
+    # 'LidarNoise': get_lidar_noise_sensor
 }

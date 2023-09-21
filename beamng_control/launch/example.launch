@@ -1,9 +1,50 @@
 <launch>
-    <arg name="scenario" default="west_coast_with_imu" doc="[west_coast_with_electrics, west_coast_with_imu, west_coast_with_lidar]"/>
-    <include file="$(find beamng_control)/launch/bridge.launch">
-        <!-- substitute with the ip address of your target machine-->
-          <arg name="host" value="192.168.1.104"/> 
-        <!-- choose scenario-->
-        <arg name="scenario_config" value="$(find beamng_control)/config/scenarios/$(arg scenario).json"/>
-    </include>
+    <!-- Define arguments -->
+    
+    <!-- choose scenario-->
+    <arg name="scenario" default="west_coast_with_all_sensors" 
+    doc="[
+    west_coast_with_electrics,
+    west_coast_with_imu, 
+    utah_scenario_with_cam_lidar_and_imu, 
+    west_coast_with_lidar
+    utah_scenario_with_cam_and_lidar
+    ]"/>
+    <arg name="scenario_config" 
+    value="$(find beamng_control)/config/scenarios/$(arg scenario).json"/>
+    <arg name="open_ego_vehicle_lidar" default="true" />
+    <arg name="open_ego_vehicle_camera" default="true" />
+    <arg name="open_ego_vehicle_ultrasonic" default="true" />
+    <arg name="open_rviz" default="true" />
+
+
+    <arg name="port" default="64256"/>
+    <!-- you can type your IPV4 here  -->
+    <!-- <arg name="host" value="192.168.1.107"/> -->
+    <!-- OR use the variable in ~/.bashrc  -->
+    <arg name="host" default="$(env SIMULATOR_IP)"/>
+
+    <group ns="beamng">
+        <param name="host" value="$(arg host)"/>
+        <param name="port" value="$(arg port)"/>
+    </group>
+
+
+        <!-- <node/> -->
+    <node pkg="beamng_control" type="bridge.py" name="beamng_control" args="$(arg scenario_config)" 
+    output="screen"/>
+
+    <!-- Conditionally start RVIZ nodes based on arguments -->
+    <node if="$(arg open_ego_vehicle_lidar)" pkg="tf2_ros" type="static_transform_publisher"
+          name="ego_vehicle_lidar_link_broadcaster"
+          args="0 0 2 0 0 0 1 ego_vehicle lidar_link" />
+    <node if="$(arg open_ego_vehicle_camera)" pkg="tf2_ros" type="static_transform_publisher"
+          name="ego_vehicle_camera_link_broadcaster"
+          args="0 -2 1 0 0 0 1 ego_vehicle camera_link" />
+    <node if="$(arg open_ego_vehicle_ultrasonic)" pkg="tf2_ros" type="static_transform_publisher"
+          name="ego_vehicle_ultrasonic_link_broadcaster"
+          args="-1.2 -2.1 1.0 0 0 0 1 ego_vehicle ultrasonic_link" />
+    <node if="$(arg open_rviz)" name="rviz" pkg="rviz"
+          type="rviz" args="-d $(find beamng_control)/config/rviz/example.rviz" />
+
 </launch>
