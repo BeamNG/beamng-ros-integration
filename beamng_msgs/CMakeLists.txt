@@ -15,6 +15,7 @@ add_message_files(
   ScenarioState.msg
   StateSensor.msg
   TimeSensor.msg
+  USSensor.msg
   VehicleControl.msg
   VehicleInfo.msg
   WheelThermalsInfo.msg

@@ -17,13 +17,11 @@ NODE_NAME = 'beamng_agent'
 class VehicleControl(object):
 
     def __init__(self, vehicle_id):
-        params = rospy.get_param("beamng")        
-        self.game_client = bngpy.BeamNGpy(params['host'], params['port'])
-        # self.game_client = bngpy.BeamNGpy(params['host'], params['port'], remote=True)
+        params = rospy.get_param("beamng")
+        self.game_client = bngpy.BeamNGpy(params['host'], params['port'], remote=True)
 
         try:
-            # self.game_client.open(launch=False, deploy=False)
-            self.game_client.open(listen_ip='*',launch=False, deploy=False)
+            self.game_client.open(launch=False, deploy=False)
             rospy.loginfo("Successfully connected to BeamNG.tech.")
         except TimeoutError:
             rospy.logerr("Could not establish game connection, check whether BeamNG.tech is running.")

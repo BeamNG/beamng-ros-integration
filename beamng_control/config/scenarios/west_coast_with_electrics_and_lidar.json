@@ -10,19 +10,16 @@
       "model": "etk800",
       "position": [568.908, 13.422,  148.565],
       "rotation": [0, 0, 0, 1],
-      "structured_sensors": [
+      "sensors": [
 
         {
           "name": "electrics0",
           "type": "Electrics"
         },
-      ],
-      "sensors_automation": [
         {
           "name": "lidar0",
           "type": "Lidar.default",
-          "position": [0, 0, 1.7],
-          "rotation": [0, 0]
+          "position": [0, 0, 1.7]
         }
       ]
     }

@@ -9,7 +9,13 @@
       "model": "pickup",
       "position": [0, 0, 0],
       "rotation": [0, 0, 0, 1],
-      "structured_sensors": [
+      "sensors": [
+        {
+          "name": "front_camera",
+          "type": "Camera.default",
+          "position": [-0.3,1,1],
+          "rotation": [0,0,1,0]
+        },
         {
           "name": "imu0",
           "type": "IMU",
@@ -28,38 +34,25 @@
           "type":"GForces"
         },
         {
+          "name":"parking_sensor",
+          "type":"Ultrasonic.smallrange",
+          "position":[0, 1, 2],
+          "rotation":[0, 1, 0]
+        },
+        {
           "name": "electrics0",
           "type": "Electrics"
         },
         {
-          "name": "node_imu",
-          "type": "IMU",
-          "node": 0
-        },
-        {
-          "name": "position_imu",
-          "type": "IMU",
-          "position": [0.73, 0.51, 0.8]
-        }
-      ],
-      "ad-hoc_sensors": [
-        {
-          "name":"parking_sensor",
-          "type":"Ultrasonic.smallrange",
-          "position":[0, 1, 2],
-          "rotation": [0, 0]
-        },
-        {
           "name": "front_cam",
           "type": "Camera.default",
-          "position": [-0.3, 2, 1],
-          "rotation": [0, 0]
+          "position": [-0.3, 1, 1],
+          "rotation": [0, 1, 0]
         },
         {
           "name": "lidar0",
           "type": "Lidar.default",
-          "position": [0, 0, 1.7],
-          "rotation": [0, 0]
+          "position": [0, 0, 1.7]
         },
         {
           "name": "lidar_noise",
@@ -70,6 +63,16 @@
           "name": "noise_cam",
           "type" : "CameraNoise",
           "base sensor": "front_cam"
+        },
+        {
+          "name": "node_imu",
+          "type": "IMU",
+          "node": 0
+        },
+        {
+          "name": "position_imu",
+          "type": "IMU",
+          "position": [0.73, 0.51, 0.8]
         }
       ]
     }

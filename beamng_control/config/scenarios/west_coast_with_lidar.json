@@ -7,15 +7,14 @@
   "vehicles": [
     {
       "name": "ego_vehicle",
-      "model": "pickup",
+      "model": "etk800",
       "position": [568.908, 13.422,  148.565],
       "rotation": [0, 0, 0, 1],
-      "sensors_automation": [
+      "sensors": [
         {
           "name": "lidar0",
           "type": "Lidar.default",
-          "position": [0, 0, 2.0],
-          "rotation": [0, 0]
+          "position": [0, 0, 1.7]
         }
       ]
     }
