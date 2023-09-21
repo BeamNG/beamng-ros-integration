@@ -78,6 +78,10 @@ recommended to consult the documentation on BeamNG.drive here:
 [https://documentation.beamng.com/][8]
 
 
+## Contributions
+
+We always welcome user contributions, be sure to check out our [contribution guidelines][9] first, before starting your work.
 
 [1]: https://github.com/BeamNG/BeamNGpy
 [8]: https://documentation.beamng.com/
+[9]: https://github.com/BeamNG/BeamNG-ROS-Integration/blob/master/contributing.md
