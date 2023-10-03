@@ -12,12 +12,12 @@ Version 0.4
 - **Ultrasonic Sensor Message Type:** Changed the message type of the Ultrasonic sensor.
 
 - **BeamNGpy API Update:** Updated connection API in BeamNGpy:
-    - Removed the "remote" parameter from ``<bngpy>.BeamNGpy``.
+    - Removed the ``remote`` parameter from ``<bngpy>.BeamNGpy``.
     - Added ``listen_ip='*'`` to ``<game_client>.open``.
 
-- **Release Updates:** Updated release numbers from "0.1.2" and "0.1.3" to "0.2" and "0.2.1," respectively.
+- **Release Updates:** Updated release numbers from ``0.1.2`` and ``0.1.3`` to ``0.2`` and ``0.2.1,`` respectively.
 
-- **Launch Configuration:** Removed "bridge.launch" and now depend only on "example.launch." Minimized the arguments by removing "ns group."
+- **Launch Configuration:** Removed ``bridge.launch`` and now depend only on ``example.launch.`` Minimized the arguments by removing ``ns group.``
 
 Version 0.3 
 =========================
@@ -41,9 +41,9 @@ Version 0.2.1
 
 Version 0.2 
 =========================
-- **Keyboard Control:** Added "beamng_teleop_keyboard" for keyboard control of the vehicle (from ROS).
+- **Keyboard Control:** Added ``beamng_teleop_keyboard`` for keyboard control of the vehicle (from ROS).
 
-- **New Topic:** Added "/cmd_vel" topic.
+- **New Topic:** Added ``/cmd_vel`` topic.
 
 - **Handbrake Control:** Added handbrake (parking brake) control.
 
@@ -56,6 +56,6 @@ Version 0.1
 - **Basic Bridge:** Basic bridge with BeamNG.Tech.
 
 - **ROS Packages:** Three ROS packages are released:
-    - "beamng_control": To establish communication and load scenarios that can choose the vehicle and the equipped sensors.
-    - "beamng_agent": To give the ability to control the vehicle from ROS using simple commands (move, stop, release - to allow the user to control the vehicle from BeamNG.Tech).
-    - "beamng_msgs": A converter package to adapt BeamNGpy messages with ROS.
+    - ``beamng_control``: To establish communication and load scenarios that can choose the vehicle and the equipped sensors.
+    - ``beamng_agent``: To give the ability to control the vehicle from ROS using simple commands (move, stop, release - to allow the user to control the vehicle from BeamNG.Tech).
+    - ``beamng_msgs``: A converter package to adapt BeamNGpy messages with ROS.
