@@ -1,9 +1,25 @@
 <launch>
-    <arg name="scenario" default="west_coast_with_imu" doc="[west_coast_with_electrics, west_coast_with_imu, west_coast_with_lidar]"/>
-    <include file="$(find beamng_control)/launch/bridge.launch">
-        <!-- substitute with the ip address of your target machine-->
-          <arg name="host" value="192.168.1.104"/> 
-        <!-- choose scenario-->
-        <arg name="scenario_config" value="$(find beamng_control)/config/scenarios/$(arg scenario).json"/>
-    </include>
+    <!-- choose scenario-->
+    <arg name="scenario" default="west_coast_with_all_sensors" 
+    doc="[
+    west_coast_with_electrics,
+    west_coast_with_imu, 
+    utah_scenario_with_cam_lidar_and_imu, 
+    west_coast_with_lidar
+    utah_scenario_with_cam_and_lidar
+    ]"/>
+    <arg name="scenario_config" value="$(find beamng_control)/config/scenarios/$(arg scenario).json"/>
+    <arg name="port" default="64256"/>
+    <!-- Use the variable SIMULATOR_IP in ~/.bashrc -->
+    <arg name="host" default="$(env SIMULATOR_IP)"/>
+    <!-- OR you can type your IPV4 here -->
+    <!-- <arg name="host" value="192.168.1.107"/> -->
+    <node pkg="beamng_control" type="bridge.py" name="beamng_control" output="screen" args="$(arg scenario_config)" >
+        <param name="host" value="$(arg host)"/>
+        <param name="port" value="$(arg port)"/>
+    </node>
+    
+    <arg name="open_rviz" default="true" />
+    <node if="$(arg open_rviz)" name="rviz" pkg="rviz"
+          type="rviz" args="-d $(find beamng_control)/config/rviz/example.rviz" />
 </launch>
