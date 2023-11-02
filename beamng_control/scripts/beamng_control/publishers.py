@@ -1,19 +1,30 @@
 from abc import ABC, abstractmethod
 import rospy
-from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 
+np.float = np.float64  # temp fix for following import
+import ros_numpy
+from sensor_msgs.point_cloud2 import PointCloud2
+import tf
+import tf2_ros
+from cv_bridge import CvBridge, CvBridgeError
+import numpy as np
+from cv_bridge import CvBridge
+
+import threading
+
 import sensor_msgs
-import sensor_msgs.point_cloud2 as pc2
 import geometry_msgs.msg as geom_msgs
 import std_msgs.msg
+from tf.transformations import quaternion_from_euler, quaternion_multiply
 
 import beamngpy.sensors as bng_sensors
-#from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
+# from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
 
 from visualization_msgs.msg import Marker, MarkerArray
 
 import beamng_msgs.msg as bng_msgs
+from beamngpy.sensors import Camera
 
 
 def get_sensor_publisher(sensor):
@@ -27,8 +38,8 @@ def get_sensor_publisher(sensor):
         bng_sensors.Electrics: ElectricsPublisher,
         bng_sensors.Camera: CameraPublisher,
         bng_sensors.Lidar: LidarPublisher,
-       # RandomImageNoise: CameraPublisher,
-       #s RandomLIDARNoise: LidarPublisher
+        # RandomImageNoise: CameraPublisher,
+        # s RandomLIDARNoise: LidarPublisher
     }
     for k, v in sensor_mapping.items():
         if isinstance(sensor, k):
@@ -39,7 +50,7 @@ def get_sensor_publisher(sensor):
 class BNGPublisher(ABC):
 
     @abstractmethod
-    def publish(self):
+    def publish(self, current_time):
         pass
 
 
@@ -51,12 +62,15 @@ class SensorDataPublisher(BNGPublisher):
         self._pub = rospy.Publisher(topic_id,
                                     msg_type,
                                     queue_size=1)
+        self.current_time = rospy.get_rostime()
+        self.frame_map = 'map'
 
     @abstractmethod
     def _make_msg(self):
         pass
 
-    def publish(self):
+    def publish(self, current_time):
+        self.current_time = current_time
         msg = self._make_msg()
         self._pub.publish(msg)
 
@@ -149,11 +163,11 @@ class IMUPublisher(SensorDataPublisher):
         data = self._sensor.data
         msg = sensor_msgs.msg.Imu()
         msg.orientation = geom_msgs.Quaternion(0, 0, 0, 0)
-        msg.orientation_covariance = [-1, ]*9
+        msg.orientation_covariance = [-1, ] * 9
         msg.angular_velocity = geom_msgs.Vector3(*[data[x] for x in ['aX', 'aY', 'aZ']])
-        msg.angular_velocity_covariance = [-1, ]*9
+        msg.angular_velocity_covariance = [-1, ] * 9
         msg.linear_acceleration = geom_msgs.Vector3(*[data[x] for x in ['gX', 'gY', 'gZ']])
-        msg.linear_acceleration_covariance = [-1, ]*9
+        msg.linear_acceleration_covariance = [-1, ] * 9
         return msg
 
 
@@ -259,7 +273,28 @@ class ElectricsPublisher(SensorDataPublisher):
         return msg
 
 
-class ColorImgPublisher(SensorDataPublisher):
+class CameraDataPublisher:
+
+    def __init__(self, sensor, topic_id, msg_type):
+        rospy.logdebug(f'publishing to {topic_id}')
+        self._sensor = sensor
+        self._pub = rospy.Publisher(topic_id,
+                                    msg_type,
+                                    queue_size=1)
+        self.current_time = rospy.get_rostime()
+        self.frame_map = 'map'
+
+    @abstractmethod
+    def _make_msg(self, data):
+        pass
+
+    def publish(self, current_time, data):
+        self.current_time = current_time
+        msg = self._make_msg(data)
+        self._pub.publish(msg)
+
+
+class ColorImgPublisher(CameraDataPublisher):
 
     def __init__(self, sensor, topic_id, cv_helper, data_descriptor):
         super().__init__(sensor,
@@ -268,11 +303,13 @@ class ColorImgPublisher(SensorDataPublisher):
         self._cv_helper = cv_helper
         self._data_descriptor = data_descriptor
 
-    def _make_msg(self):
-        data = self._sensor.data
-        img = data[self._data_descriptor].convert('RGB')
-        img = np.array(img)
-        img = img[:, :, ::-1].copy()
+    def _make_msg(self, data):
+        img = data[self._data_descriptor]
+        if img is not None:
+            img = np.array(img.convert('RGB'))
+            img = img[:, :, ::-1].copy()
+        else:
+            img = np.zeros_like(data['colour'].convert('RGB'))
         try:
             img = self._cv_helper.cv2_to_imgmsg(img, 'bgr8')
         except CvBridgeError as e:
@@ -280,7 +317,7 @@ class ColorImgPublisher(SensorDataPublisher):
         return img
 
 
-class DepthImgPublisher(SensorDataPublisher):
+class DepthImgPublisher(CameraDataPublisher):
 
     def __init__(self, sensor, topic_id, cv_helper):
         super().__init__(sensor,
@@ -288,11 +325,10 @@ class DepthImgPublisher(SensorDataPublisher):
                          sensor_msgs.msg.Image)
         self._cv_helper = cv_helper
 
-    def _make_msg(self):
-        data = self._sensor.data
+    def _make_msg(self, data):
         img = data['depth']
-        near, far = self._sensor.near_far
-        img = (np.array(img)-near)/far*255
+        near, far = self._sensor.near_far_planes
+        img = (np.array(img) - near) / far * 255
         img = img.astype(np.uint8)
         try:
             img = self._cv_helper.cv2_to_imgmsg(img, 'mono8')
@@ -301,7 +337,7 @@ class DepthImgPublisher(SensorDataPublisher):
         return img
 
 
-class BBoxImgPublisher(SensorDataPublisher):
+class BBoxImgPublisher(CameraDataPublisher):
 
     def __init__(self, sensor, topic_id, cv_helper, vehicle):
         super().__init__(sensor,
@@ -311,23 +347,22 @@ class BBoxImgPublisher(SensorDataPublisher):
         self._vehicle = vehicle
         self._classes = None
 
-    def _update_data_with_bbox(self):
+    def _update_data_with_bbox(self, data):
         if self._classes is None:
             annotations = self._vehicle.bng.get_annotations()
             self._classes = self._vehicle.bng.get_annotation_classes(annotations)
-        data = self._sensor.data
-        bboxes = bng_sensors.Camera.extract_bboxes(data['annotation'],
-                                                   data['instance'],
-                                                   self._classes)
+        bboxes = Camera.extract_bounding_boxes(data['annotation'],
+                                               data['instance'],
+                                               self._classes)
         bboxes = [b for b in bboxes if b['class'] == 'CAR']
         rospy.logdebug(f'bboxes: {bboxes}')
-        bbox_img = bng_sensors.Camera.draw_bboxes(bboxes,
-                                                  data['colour'],
-                                                  width=3)
+        bbox_img = Camera.draw_bounding_boxes(bboxes,
+                                              data['colour'],
+                                              width=3)
         return bbox_img
 
-    def _make_msg(self):
-        img = self._update_data_with_bbox()
+    def _make_msg(self, data):
+        img = self._update_data_with_bbox(data)
         img = img.convert('RGB')
         img = np.array(img)
         img = img[:, :, ::-1].copy()
@@ -344,27 +379,27 @@ class CameraPublisher(BNGPublisher):
         self._sensor = sensor
         self._cv_helper = CvBridge()
         self._publishers = list()
-        if self._sensor.colour:
-            color_topic = '/'.join([topic_id, 'color'])
+        if self._sensor.is_render_colours:
+            color_topic = '/'.join([topic_id, 'colour'])
             pub = ColorImgPublisher(sensor,
                                     color_topic,
                                     self._cv_helper,
                                     'colour')
             self._publishers.append(pub)
-        if self._sensor.depth:
+        if self._sensor.is_render_depth:
             depth_topic = '/'.join([topic_id, 'depth'])
             pub = DepthImgPublisher(sensor,
                                     depth_topic,
                                     self._cv_helper)
             self._publishers.append(pub)
-        if self._sensor.annotation:
+        if self._sensor.is_render_annotations:
             annotation_topic = '/'.join([topic_id, 'annotation'])
             pub = ColorImgPublisher(sensor,
                                     annotation_topic,
                                     self._cv_helper,
                                     'annotation')
             self._publishers.append(pub)
-        if self._sensor.instance:
+        if self._sensor.is_render_instance:
             inst_ann_topic = '/'.join([topic_id, 'instance'])
             pub = ColorImgPublisher(sensor,
                                     inst_ann_topic,
@@ -379,25 +414,54 @@ class CameraPublisher(BNGPublisher):
                                    vehicle)
             self._publishers.append(pub)
 
-    def publish(self):
+    def publish(self, current_time):
+        if self._sensor.is_render_instance:
+            data = self._sensor.get_full_poll_request()
+        else:
+            data = self._sensor.poll()
         for pub in self._publishers:
-            pub.publish()
+            pub.current_time = current_time
+            pub.publish(current_time, data)
 
 
 class LidarPublisher(SensorDataPublisher):
 
-    def __init__(self, sensor, topic_id):
+    def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
-        rospy.logdebug(f'sensor_msgs.msg.PointCloud2: {sensor_msgs.msg.PointCloud2}')
+        self.listener = tf.TransformListener()
+        sensor_name = topic_id.split("/")[-1]
+        self.frame_lidar_sensor = f'{vehicle.vid}_{sensor_name}'
 
     def _make_msg(self):
-        points = self._sensor.data['points']
-        point_num = points.shape[0]//3
-        points = points.reshape(point_num, 3)
         header = std_msgs.msg.Header()
-        header.frame_id = 'map'
-        header.stamp = rospy.get_rostime()
-        msg = pc2.create_cloud_xyz32(header, points)
+        header.frame_id = self.frame_lidar_sensor
+        header.stamp = self.current_time
+
+        readings_data = self._sensor.poll()
+        points = np.array(readings_data['pointCloud'])
+        colours = readings_data['colours']
+
+        pointcloud_fields = [('x', np.float32),
+                             ('y', np.float32),
+                             ('z', np.float32),
+                             ('intensity', np.float32)]
+
+        try:
+            (trans_map, _) = self.listener.lookupTransform(self.frame_map, self.frame_lidar_sensor, header.stamp)
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+            rospy.logwarn(f'No transform between {self.frame_map} and '
+                          f'{self.frame_lidar_sensor} available with exception: {e}')
+            points = np.zeros((0, 3))
+            colours = np.zeros((0,))
+            trans_map = np.zeros(3)
+
+        pointcloud_data = np.zeros(points.shape[0], dtype=pointcloud_fields)
+        pointcloud_data['x'] = points[:, 0] - trans_map[0]
+        pointcloud_data['y'] = points[:, 1] - trans_map[1]
+        pointcloud_data['z'] = points[:, 2] - trans_map[2]
+        pointcloud_data['intensity'] = np.array(colours)
+        msg = ros_numpy.msgify(PointCloud2, pointcloud_data)
+        msg.header = header
         return msg
 
 
@@ -407,6 +471,18 @@ class VehiclePublisher(BNGPublisher):
                  node_name,
                  visualize=True):
         self._vehicle = vehicle
+        self.node_name = node_name
+        self._broadcaster_pose = tf2_ros.TransformBroadcaster()
+        self.tf_msg = tf2_ros.TransformStamped()
+        self.frame_map = 'map'
+        self.tf_msg.header.frame_id = self.frame_map
+        self.tf_msg.child_frame_id = self._vehicle.vid
+        self.alignment_quat = np.array([0, 1, 0, 0])  # sets the forward direction as -y
+        # self.alignment_quat = np.array([0, 0, 0, 1])  # sets the forward direction as -y
+        # self.alignment_quat = np.array([1, 0, 0, 0])
+        self.current_time = rospy.get_rostime()
+
+        self.node_name = node_name
         self._sensor_publishers = list()
         for sensor_name, sensor in vehicle.sensors.items():
             topic_id = [node_name, vehicle.vid, sensor_name]
@@ -418,6 +494,7 @@ class VehiclePublisher(BNGPublisher):
             else:
                 pub = pub(sensor, topic_id)
             self._sensor_publishers.append(pub)
+
         self.visualizer = None
         if visualize:
             topic_id = [node_name, vehicle.vid, 'marker']
@@ -426,10 +503,30 @@ class VehiclePublisher(BNGPublisher):
                                               Marker,
                                               queue_size=1)
 
+    def broadcast_vehicle_pose(self, data):
+        self.tf_msg.header.stamp = self.current_time
+        self.tf_msg.transform.translation.x = data['pos'][0]
+        self.tf_msg.transform.translation.y = data['pos'][1]
+        self.tf_msg.transform.translation.z = data['pos'][2]
+
+        quat_orientation = np.array([data['rotation'][0],
+                                     data['rotation'][1],
+                                     data['rotation'][2],
+                                     data['rotation'][3]])
+
+        quat_orientation = quaternion_multiply(self.alignment_quat, quat_orientation)
+        quat_orientation /= np.linalg.norm(quat_orientation)
+
+        self.tf_msg.transform.rotation.x = quat_orientation[0]  # data['rotation'][0]
+        self.tf_msg.transform.rotation.y = quat_orientation[1]  # data['rotation'][1]
+        self.tf_msg.transform.rotation.z = quat_orientation[2]  # data['rotation'][2]
+        self.tf_msg.transform.rotation.w = quat_orientation[3]  # data['rotation'][3]
+        self._broadcaster_pose.sendTransform(self.tf_msg)
+
     def state_to_marker(self, data, marker_ns):
         mark = Marker()
-        mark.header.frame_id = 'map'
-        mark.header.stamp = rospy.Time.now()
+        mark.header.frame_id = self.frame_map
+        mark.header.stamp = self.current_time
         mark.type = Marker.CUBE
         mark.ns = marker_ns
         mark.action = Marker.ADD
@@ -455,10 +552,12 @@ class VehiclePublisher(BNGPublisher):
 
         return mark
 
-    def publish(self):
+    def publish(self, current_time):
+        self.current_time = current_time
         self._vehicle.poll_sensors()
-        for pub in self._sensor_publishers:
-            pub.publish()
+        self.broadcast_vehicle_pose(self._vehicle.sensors['state'].data)
+        for pub in self._sensor_publishers:  # this got us 1fps more
+            threading.Thread(target=pub.publish, args=(current_time,), daemon=True).start()
         if self.visualizer is not None:
             mark = self.state_to_marker(self._vehicle.sensors['state'].data,
                                         self._vehicle.vid)
@@ -468,11 +567,13 @@ class VehiclePublisher(BNGPublisher):
 class NetworkPublisher(BNGPublisher):
 
     def __init__(self, game_client, node_name):
+        self.frame_map = 'map'
         self._game_client = game_client
         self._road_network = None
         self._node_name = node_name
         topic_id = '/'.join([node_name, 'road_network'])
         self._pub = rospy.Publisher(topic_id, MarkerArray, queue_size=1)
+        self.current_time = rospy.get_rostime()
 
     def set_up_road_network_viz(self):
         roads = self._game_client.get_roads()
@@ -486,13 +587,14 @@ class NetworkPublisher(BNGPublisher):
             rospy.logdebug(f'++++++++++\nroad: {road}')
             mark = Marker()
             mark.header = std_msgs.msg.Header()
-            mark.header.frame_id = 'map'
+            mark.header.frame_id = self.frame_map
+            mark.header.stamp = self.current_time
             mark.type = Marker.LINE_STRIP
             ns = self._node_name
             mark.ns = ns
             mark.action = Marker.ADD
             mark.id = r_id
-            mark.lifetime = rospy.Duration()
+            mark.lifetime = rospy.Duration(0)  # leave them up forever
 
             mark.pose.position.x = 0
             mark.pose.position.y = 0
@@ -517,9 +619,10 @@ class NetworkPublisher(BNGPublisher):
         marker_num = len(self._road_network.markers)
         rospy.logdebug(f'the road network contains {marker_num} markers')
 
-    def publish(self):
+    def publish(self, current_time):
+        self.current_time = current_time
         if self._road_network is None:
             self.set_up_road_network_viz()
-        for r in self._road_network.markers:
-            r.header.stamp = rospy.get_rostime()
+        for marker in self._road_network.markers:
+            marker.header.stamp = self.current_time
         self._pub.publish(self._road_network.markers)

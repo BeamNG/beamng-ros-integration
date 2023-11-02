@@ -1,8 +1,12 @@
 import rospy
 import copy
+import numpy as np
 
 import beamngpy.sensors as bng_sensors
-#from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
+from beamng_control.publishers import LidarPublisher, CameraPublisher
+
+
+# from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
 
 
 class SensorSpecificationError(TypeError):
@@ -12,27 +16,40 @@ class SensorSpecificationError(TypeError):
     pass
 
 
-def get_lidar(position,
-              direction,
+def rotate_direction_vector(vec, pitch, yaw):
+    Rx = np.array([[1, 0, 0],
+                   [0, np.cos(pitch), np.sin(pitch)],
+                   [0, -np.sin(pitch), np.cos(pitch)]])
+    Rz = np.array([[np.cos(yaw), -np.sin(yaw), 0],
+                   [np.sin(yaw), np.cos(yaw), 0],
+                   [0, 0, 1]])
+    return Rx @ Rz @ vec
+
+
+def get_lidar(bng,
+              vehicle,
+              position,
+              rotation,
               vertical_resolution,
               vertical_angle,
               max_distance,
               **spec):
-    rospy.logdebug('Lidar visualization cannot '
-                   'be enabled through the beamng ros integration')
-    spec['visualized'] = False
     if 'shmem' in spec and spec['shmem']:
         spec.pop('shmem')
         rospy.logwarn('The Lidar sensor provides no shared memory support, '
                       'sensor data is always shared through sockets.')
     try:
-        lidar = bng_sensors.Lidar(offset=position,
-                                  direction=direction,
-                                  vres=vertical_resolution,
-                                  vangle=vertical_angle,
-                                  max_dist=max_distance,
-                                  shmem=False,
+        lidar = bng_sensors.Lidar(bng=bng,
+                                  vehicle=vehicle,
+                                  pos=position,
+                                  dir=(0, -1, 0),
+                                  up=(0, 0, 1),
+                                  vertical_resolution=vertical_resolution,
+                                  vertical_angle=vertical_angle,
+                                  max_distance=max_distance,
+                                  is_using_shared_memory=False,
                                   **spec)
+
     except TypeError as e:
         raise SensorSpecificationError('Could not get Lidar instance, the '
                                        'json specification provided an'
@@ -63,9 +80,15 @@ def get_ultrasonic(position, rotation, **spec):
     spec['near_far'] = (spec.pop('min_distance'),
                         spec.pop('max_distance'))
     try:
-        us = bng_sensors.Ultrasonic(position,
-                                    rotation,
+        us = bng_sensors.Ultrasonic(pos=position,
+                                    dir=(0, -1, 0),
+                                    up=(0, 0, 1),
                                     **spec)
+        rotation = np.radians(rotation)
+        new_position = rotate_direction_vector(vec=position,
+                                               pitch=rotation[0],
+                                               yaw=rotation[1])
+        us.set_direction((new_position[0], new_position[1], new_position[2]))
     except TypeError as e:
         raise SensorSpecificationError('Could not get ultrasonic sensor '
                                        'instance, the json specification '
@@ -76,26 +99,31 @@ def get_ultrasonic(position, rotation, **spec):
     return us
 
 
-def get_camera(position, rotation, fov, resolution, **spec):
-    if 'bounding_box' in spec:
-        if spec['bounding_box']:
-            rospy.logerr('Bounding boxes are not supported '
-                         'for the camera sensor.')
-        bbox = spec.pop('bounding_box')
-    bbox = False  # remove when bboxes are working
-
-    if 'shmem' in spec:
+def get_camera(name, bng, vehicle, position, rotation, field_of_view_y, resolution, **spec):
+    bbox = spec.pop('bounding_box')
+    if 'is_using_shared_memory' in spec:
         rospy.logerr('Shared memory is automatically disabled '
                      'for the camera sensor.')
-        spec.pop('shmem')
+        spec.pop('is_using_shared_memory')
 
     try:
-        cam = bng_sensors.Camera(position,
-                                 rotation,
-                                 fov,
-                                 resolution,
-                                 shmem=False,
+        # we yaw then pitch
+        cam = bng_sensors.Camera(name=name,
+                                 bng=bng,
+                                 vehicle=vehicle,
+                                 pos=position,
+                                 dir=(0, -1, 0),
+                                 up=(0, 0, 1),
+                                 field_of_view_y=field_of_view_y,
+                                 resolution=resolution,
+                                 is_using_shared_memory=False,
                                  **spec)
+        rotation = np.radians(rotation)
+        new_position = rotate_direction_vector(vec=position,
+                                               pitch=rotation[0],
+                                               yaw=rotation[1])
+        cam.set_direction((new_position[0], new_position[1], new_position[2]))
+
     except TypeError as e:
         raise SensorSpecificationError('Could not get Camera instance, the '
                                        'json specification provided an'
@@ -103,7 +131,7 @@ def get_camera(position, rotation, fov, resolution, **spec):
                                        f'unexpected inputs:\n{spec}\n'
                                        '\nOriginal error '
                                        f'message:\n{e}')
-    if bbox and not(cam.instance and cam.annotation):
+    if bbox and not (cam.is_render_instance and cam.is_render_annotations):
         rospy.logerr('Enabled annotations and instance annotations'
                      'are required to generate images with bounding box.')
     else:
@@ -155,7 +183,7 @@ def select_sensor_definition(sensor_type_name, sensor_defs):
     return sensor_type[0], sensor_spec
 
 
-def get_sensor(sensor_type, all_sensor_defs, dyn_sensor_properties=None):
+def get_sensor(sensor_type, all_sensor_defs, bng=None, vehicle=None, name=None, dyn_sensor_properties=None):
     """
     Args:
     sensor_type(string): used to look up static part of sensor definition
@@ -175,15 +203,38 @@ def get_sensor(sensor_type, all_sensor_defs, dyn_sensor_properties=None):
         sensor_def.update(dyn_sensor_properties)
     rospy.logdebug(f'sensor_def: {sensor_def}')
     try:
-        sensor = _sensor_getters[sensor_class_name](**sensor_def)
+        if sensor_class_name in _automation_sensors:
+            sensor = _sensor_getters[sensor_class_name](bng=bng,
+                                                        name=name,
+                                                        vehicle=vehicle,
+                                                        **sensor_def)
+            sensor_publisher = _sensor_automation_type_publisher_getter[sensor_class_name]
+        else:
+            sensor = _sensor_getters[sensor_class_name](**sensor_def)
+            sensor_publisher = None
     except TypeError as err:
         raise SensorSpecificationError(f'The {sensor_class_name} sensor '
                                        'definition is missing one or more '
                                        'fields. These fields '
                                        f'where defined:\n{sensor_def}\n'
                                        f'Original error message:\n{err}')
-    return sensor
+    return sensor, sensor_publisher
 
+
+_automation_sensors = ['Camera',
+                       'Lidar',
+                       'CameraNoise',
+                       'LidarNoise',
+                       'Ultrasonic',
+                       'AdvancedIMU',  # unsure about this one
+                       'PowerTrain',  # unsure about this one
+                       'Radar',  # unsure about this one
+                       'meshsensor',  # unsure about this one
+                       ]
+_sensor_automation_type_publisher_getter = {
+    'Lidar': LidarPublisher,
+    'Camera': CameraPublisher,
+}
 
 _sensor_getters = {
     'IMU': get_imu,

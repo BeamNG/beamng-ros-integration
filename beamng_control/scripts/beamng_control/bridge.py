@@ -3,18 +3,24 @@
 
 import sys
 import json
+import copy
 from pathlib import Path
 from distutils.version import LooseVersion
 
+import numpy as np
 import rospy
 import rospkg
 import actionlib
+import tf
+import tf2_ros
+from tf.transformations import quaternion_from_euler, quaternion_multiply
+import geometry_msgs.msg
 
 import beamngpy as bngpy
 import beamng_msgs.msg as bng_msgs
 import beamng_msgs.srv as bng_srv
 
-from beamng_control.publishers import VehiclePublisher, NetworkPublisher
+from beamng_control.publishers import VehiclePublisher, NetworkPublisher, get_sensor_publisher
 from beamng_control.sensorHelper import get_sensor
 
 MIN_BNG_VERSION_REQUIRED = '0.18.0'
@@ -24,7 +30,7 @@ NODE_NAME = 'beamng_control'
 def load_json(file_name):
     pkg_path = rospkg.RosPack().get_path(NODE_NAME)
     file_path = Path(file_name).resolve()
-    relative_fp = Path(str(pkg_path)+'/'+str(file_path))
+    relative_fp = Path(str(pkg_path) + '/' + str(file_path))
     if not file_path.is_file() and relative_fp.is_file():
         file_path = relative_fp
     with file_path.open('r') as fh:
@@ -48,6 +54,9 @@ class BeamNGBridge(object):
 
         self._setup_services()
         self._publishers = list()
+        self._vehicle_publisher = None
+        self._static_tf_frames: list = []
+        self._static_tf_broadcaster = tf2_ros.StaticTransformBroadcaster()
         self._setup_sensor_defs(sensor_paths)
 
         self._stepAS = actionlib.SimpleActionServer(f'{NODE_NAME}/step',
@@ -58,13 +67,14 @@ class BeamNGBridge(object):
 
         self._stepAS.start()
         self._marker_idx = 0
+        self.network_publisher = None
 
     def _setup_sensor_defs(self, sensor_paths):
         default_path = ['/config/sensors.json']
         sensor_paths = default_path if not sensor_paths else sensor_paths
         print("------------")
         print("------------")
-        print ("sensor_paths",sensor_paths)
+        print("sensor_paths", sensor_paths)
         print("------------")
         print("------------")
         sensor_defs = dict()
@@ -106,23 +116,24 @@ class BeamNGBridge(object):
         self._marker_idx += 1
         return m
 
-    def get_vehicle_from_dict(self, v_spec):
-        vehicle = bngpy.Vehicle(v_spec['name'], v_spec['model'])
+    def get_sensor_classical_from_dict(self, v_spec, vehicle):
         sensor_collection = list()
         noise_sensors = list()
-        if 'sensors' in v_spec:
-            for spec in v_spec['sensors']:
+        if 'sensors_classical' in v_spec:
+            for spec in v_spec['sensors_classical']:
                 if 'base sensor' in spec:
                     noise_sensors.append(spec)
                 else:
                     sensor_collection.append(spec)
-        rospy.logdebug(f'sensors: {sensor_collection}')
-        rospy.logdebug(f'noise: {noise_sensors}')
+        rospy.logdebug(f'sensors_classical: {sensor_collection}')
+        rospy.logdebug(f'noise_classical: {noise_sensors}')
         for s_spec in sensor_collection:
             s_name = s_spec.pop('name')
             s_type = s_spec.pop('type')
             rospy.logdebug(f'Attempting to set up {s_type} sensor.')
-            sensor = get_sensor(s_type,
+            sensor = get_sensor(self.game_client,
+                                vehicle,
+                                s_type,
                                 self._sensor_defs,
                                 dyn_sensor_properties=s_spec)
             vehicle.attach_sensor(s_name, sensor)
@@ -136,13 +147,92 @@ class BeamNGBridge(object):
                 rospy.logerr(f'Could not find sensor with id {sensor} to '
                              f'generate noise sensor of type {n_type}')
             n_spec['sensor'] = sensor
-            noise = get_sensor(n_type,
+            noise = get_sensor(self.game_client,
+                               n_type,
                                self._sensor_defs,
                                dyn_sensor_properties=n_spec)
             vehicle.attach_sensor(n_name, noise)
         return vehicle
 
-    def _scenario_from_json(self, file_name):
+    @staticmethod
+    def get_stamped_static_tf_frame(translation, rotation, vehicle_name: str, sensor_name: str):
+        static_transform_stamped = geometry_msgs.msg.TransformStamped()
+        static_transform_stamped.header.frame_id = vehicle_name
+        static_transform_stamped.child_frame_id = f"{vehicle_name}_{sensor_name}"
+
+        static_transform_stamped.transform.translation.x = float(translation[0])
+        static_transform_stamped.transform.translation.y = float(translation[1])
+        static_transform_stamped.transform.translation.z = float(translation[2])
+
+        quat = tf.transformations.quaternion_from_euler(float(0),
+                                                        float(rotation[0]),
+                                                        float(rotation[1]))  # RPY to convert
+
+        alignment_quat = np.array([0, 0, 0, 1])  # sets the forward direction as -y
+        # alignment_quat = np.array([0, 1, 0, 0])  # sets the forward direction as -y
+        quat = quaternion_multiply(alignment_quat, quat)
+        quat /= np.linalg.norm(quat)
+        static_transform_stamped.transform.rotation.x = quat[0]
+        static_transform_stamped.transform.rotation.y = quat[1]
+        static_transform_stamped.transform.rotation.z = quat[2]
+        static_transform_stamped.transform.rotation.w = quat[3]
+        return static_transform_stamped
+
+    def set_sensor_automation_from_dict(self, scenario_spec, vehicle_list):
+        for v_spec, vehicle in zip(scenario_spec['vehicles'], vehicle_list):
+            sensor_collection = list()
+            noise_sensors = list()
+            if 'sensors_automation' in v_spec:
+                for spec in v_spec['sensors_automation']:
+                    if 'base sensor' in spec:
+                        noise_sensors.append(spec)
+                    else:
+                        sensor_collection.append(spec)
+            rospy.logdebug(f'sensors_automation: {sensor_collection}')
+            rospy.logdebug(f'noise_automation: {noise_sensors}')
+            for s_spec in sensor_collection:
+                dyn_spec = copy.deepcopy(s_spec)
+                dyn_spec.pop("name")
+                dyn_spec.pop("type")
+                s_type = s_spec["type"]
+                name = s_spec["name"]
+
+                rospy.logdebug(f'Attempting to set up {s_type} sensor.')
+                sensor, sensor_publisher = get_sensor(s_type,
+                                                      self._sensor_defs,
+                                                      bng=self.game_client,
+                                                      vehicle=vehicle,
+                                                      name=name,
+                                                      dyn_sensor_properties=dyn_spec)
+                if sensor_publisher is not None:
+                    static_sensor_frame = self.get_stamped_static_tf_frame(translation=s_spec['position'],
+                                                                           rotation=s_spec['rotation'],
+                                                                           vehicle_name=vehicle.vid,
+                                                                           sensor_name=name)
+                    self._static_tf_frames.append(static_sensor_frame)
+                    self._publishers.append(sensor_publisher(sensor, f"{NODE_NAME}/{vehicle.vid}/{name}", vehicle))
+            # for n_spec in noise_sensors:
+            #     n_name = n_spec.pop('name')
+            #     n_type = n_spec.pop('type')
+            #     sensor = n_spec.pop('base sensor')
+            #     if sensor in vehicle.sensors:
+            #         sensor = vehicle.sensors[sensor]
+            #     else:
+            #         rospy.logerr(f'Could not find sensor with id {sensor} to '
+            #                      f'generate noise sensor of type {n_type}')
+            #     n_spec['sensor'] = sensor
+            #     noise = get_sensor(n_type,
+            #                        self._sensor_defs,
+            #                        dyn_sensor_properties=n_spec)
+            #     vehicle.attach_sensor(n_name, noise)
+
+    @staticmethod
+    def get_vehicle_from_dict(v_spec):
+        vehicle = bngpy.Vehicle(v_spec['name'], v_spec['model'])
+        return vehicle
+
+    @staticmethod
+    def _scenario_from_json(file_name):
         try:
             scenario_spec = load_json(file_name)
         except FileNotFoundError:
@@ -152,41 +242,49 @@ class BeamNGBridge(object):
         return scenario_spec
 
     def decode_scenario(self, scenario_spec):
+        vehicle_list = list()
         scenario = bngpy.Scenario(scenario_spec.pop('level'),
                                   scenario_spec.pop('name'))
 
         for v_spec in scenario_spec['vehicles']:
             vehicle = self.get_vehicle_from_dict(v_spec)
-            self._publishers.append(VehiclePublisher(vehicle, NODE_NAME))  # todo markers need to be added somwhere else
-            scenario.add_vehicle(vehicle, pos=v_spec['position'],
-                                 rot_quat=v_spec['rotation'])
+            # set up classical sensors
+            vehicle = self.get_sensor_classical_from_dict(v_spec, vehicle)
+            self._vehicle_publisher = VehiclePublisher(vehicle, NODE_NAME)  # we need this to be published first for tf
+            scenario.add_vehicle(vehicle,
+                                 pos=v_spec['position'],
+                                 rot_quat=v_spec['rotation']
+                                 )
+            vehicle_list.append(vehicle)
 
         on_scenario_start = list()
         wp_key = 'weather_presets'
         if wp_key in scenario_spec.keys():
             def weather_presets():
                 self.game_client.set_weather_preset(scenario_spec[wp_key])
+
             on_scenario_start.append(weather_presets)
         if 'time_of_day' in scenario_spec.keys():
             def tod():
                 self.game_client.set_tod(scenario_spec['time_of_day'])
+
             on_scenario_start.append(tod)
         net_viz_key = 'network_vizualization'
         if net_viz_key in scenario_spec and scenario_spec[net_viz_key] == 'on':
-            self._publishers.append(NetworkPublisher(self.game_client,
-                                                     NODE_NAME))
-        return scenario, on_scenario_start
+            self._publishers.append(NetworkPublisher(self.game_client, NODE_NAME))
+        return scenario, on_scenario_start, vehicle_list
 
     def start_scenario(self, file_name):
         self._publishers = list()
         scenario_spec = self._scenario_from_json(file_name)
         if not scenario_spec:
             return
-        scenario, on_scenario_start = self.decode_scenario(scenario_spec)
+        scenario, on_scenario_start, vehicle_list = self.decode_scenario(scenario_spec)
         scenario.make(self.game_client)
         self.game_client.load_scenario(scenario)
         self.game_client.start_scenario()
-
+        # Automation sensors need to be set up after the scenario starts
+        self.set_sensor_automation_from_dict(scenario_spec, vehicle_list)
         for hook in on_scenario_start:
             hook()
 
@@ -311,9 +409,9 @@ class BeamNGBridge(object):
         feedback = bng_msgs.StepFeedback()
 
         step_counter = 0
-        imax = goal.total_number_of_steps//goal.feedback_cycle_size
+        imax = goal.total_number_of_steps // goal.feedback_cycle_size
         rest = goal.total_number_of_steps % goal.feedback_cycle_size
-        imax = imax+1 if rest else imax
+        imax = imax + 1 if rest else imax
 
         for i in range(0, imax):
             if self._stepAS.is_preempt_requested():
@@ -323,7 +421,7 @@ class BeamNGBridge(object):
                               f"{step_counter}/{goal.total_number_of_steps} "
                               "steps")
                 break
-            steps_to_finish = goal.total_number_of_steps-step_counter
+            steps_to_finish = goal.total_number_of_steps - step_counter
             step_size = min(steps_to_finish, goal.feedback_cycle_size)
             self.game_client.step(step_size)
             step_counter += step_size
@@ -359,12 +457,20 @@ class BeamNGBridge(object):
         return network
 
     def work(self):
-        rate = rospy.Rate(10)  # todo increase
-        while not rospy.is_shutdown():
-            if self.running:
+        ros_rate = 10
+        rate = rospy.Rate(ros_rate)  # todo add threading
+        if self.running:
+
+            while not rospy.is_shutdown():
+                current_time = rospy.Time.now()
+                for static_tf in self._static_tf_frames:
+                    static_tf.header.stamp = current_time
+                    self._static_tf_broadcaster.sendTransform(static_tf)
+                if self._vehicle_publisher is not None:
+                    self._vehicle_publisher.publish(current_time)
                 for pub in self._publishers:
-                    pub.publish()
-            rate.sleep()
+                    pub.publish(current_time)
+                rate.sleep()
 
     def on_shutdown(self):
         rospy.loginfo("Shutting down beamng_control/bridge.py node")
@@ -383,10 +489,10 @@ def main():
                        f' version is {available_version}, aborting process.')
         sys.exit(1)
 
-   # bngpy.setup_logging()
+    # bngpy.setup_logging()
 
     argv = rospy.myargv(argv=sys.argv)
-    rospy.loginfo("cmd args"+str(argv))
+    rospy.loginfo("cmd args" + str(argv))
 
     params = rospy.get_param("beamng")
     if not ('host' in params.keys() and 'port' in params.keys()):
