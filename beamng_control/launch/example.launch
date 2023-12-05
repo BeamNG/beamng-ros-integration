@@ -1,6 +1,6 @@
 <launch>
     <!-- choose scenario-->
-    <arg name="scenario" default="west_coast_rviz_demo" 
+    <arg name="scenario" default="west_coast_with_all_sensors" 
     doc="[
     west_coast_with_electrics,
     west_coast_with_imu, 
