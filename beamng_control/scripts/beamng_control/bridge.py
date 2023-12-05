@@ -556,7 +556,10 @@ def main():
     if len(argv) == 2:
         rospy.logdebug('Detected optional input, '
                        f'creating scenario from json: "{argv[1]}"')
+        scenario_print=argv[1]
+        print("scenario_print",scenario_print)
         bridge.start_scenario(argv[1])
+        
     bridge.work()
 
 

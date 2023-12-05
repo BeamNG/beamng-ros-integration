@@ -16,12 +16,17 @@ NODE_NAME = 'beamng_agent'
 class VehicleControl(object):
 
     def __init__(self, vehicle_id):
-        params = rospy.get_param("beamng")
-        self.game_client = bngpy.BeamNGpy(params['host'], params['port'])
+        # params = rospy.get_param("beamng")       
+        host = rospy.get_param("~host", default=None)
+        port = rospy.get_param("~port", default=None)
+        
+        self.game_client = bngpy.BeamNGpy(host, port)
+        # self.game_client = bngpy.BeamNGpy("192.168.1.145", 64256)
         # self.game_client = bngpy.BeamNGpy(params['host'], params['port'], remote=True)
 
         try:
             # self.game_client.open(launch=False, deploy=False)
+            # self.game_client.open(listen_ip='*')
             self.game_client.open(listen_ip='*',launch=False, deploy=False)
             rospy.loginfo("Successfully connected to BeamNG.tech.")
         except TimeoutError:

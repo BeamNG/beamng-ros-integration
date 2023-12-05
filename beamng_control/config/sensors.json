@@ -26,7 +26,7 @@
   },
   "Ultrasonic": {
     "smallrange": {
-      "is_visualised": true,
+      "is_visualised": false,
       "is_streaming": false,
       "range_min_cutoff": 0.15,
       "range_direct_max_cutoff": 2.5

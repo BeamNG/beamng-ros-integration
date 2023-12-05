@@ -27,8 +27,8 @@ from distutils.version import LooseVersion
 AGV_MAX_LIN_VEL = 250
 AGV_MAX_ANG_VEL = 1.0 
 
-LIN_VEL_STEP_SIZE = 1
-ANG_VEL_STEP_SIZE = 0.01
+LIN_VEL_STEP_SIZE = 0.001
+ANG_VEL_STEP_SIZE = 0.05
 
 msg = """
 Control your vehicle in BeamNG.Tech simulator !

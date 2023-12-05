@@ -1,4 +1,14 @@
 <launch>
     <arg name="vehicle_id"/>
-    <node pkg="beamng_agent" type="control.py" name="control" args="$(arg vehicle_id)"/>
+    <!-- Use the variable SIMULATOR_IP in ~/.bashrc -->
+    <arg name="port" default="64256"/>
+    <!-- Use the variable SIMULATOR_IP in ~/.bashrc -->
+    <arg name="host" default="$(env SIMULATOR_IP)"/>
+
+    <node pkg="beamng_agent" type="control.py" name="control"  args="$(arg vehicle_id )">
+        <!-- <param name="vehicle_id" value="$(arg vehicle_id)"/> -->
+        <param name="port" value="$(arg port)"/>
+        <param name="host" value="$(arg host)"/>
+    </node>
 </launch>
+
