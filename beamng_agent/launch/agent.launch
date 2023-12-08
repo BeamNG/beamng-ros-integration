@@ -1,6 +1,6 @@
 <launch>
-    <arg name="vehicle_id"/>
-    <!-- Use the variable SIMULATOR_IP in ~/.bashrc -->
+    <!-- <arg name="vehicle_id"/> -->
+    <arg name="vehicle_id" value="ego_vehicle"/>
     <arg name="port" default="64256"/>
     <!-- Use the variable SIMULATOR_IP in ~/.bashrc -->
     <arg name="host" default="$(env SIMULATOR_IP)"/>
