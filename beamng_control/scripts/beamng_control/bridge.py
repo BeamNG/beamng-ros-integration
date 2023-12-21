@@ -24,10 +24,14 @@ import beamng_msgs.msg as bng_msgs
 import beamng_msgs.srv as bng_srv
 from beamng_control.publishers import VehiclePublisher, NetworkPublisher, get_sensor_publisher
 from beamng_control.sensorHelper import get_sensors_classical, get_sensors_automation
+<<<<<<< HEAD
+=======
+
+>>>>>>> 757c76547f993d3494cd9b11d103a7693f67596e
 
 
 
-MIN_BNG_VERSION_REQUIRED = '0.18.0'
+MIN_BNG_VERSION_REQUIRED = '0.31.0'
 NODE_NAME = 'beamng_control'
 
 
