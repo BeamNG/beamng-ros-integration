@@ -1,6 +1,13 @@
 Changelog
 =========
 
+
+Version 0.4.1 
+=========================
+- **Minor updates:** update the code with latest BeamNGpy 1.28 and BeamNG.Tech 0.31.
+- **Minor bug fixes:** update the launch files with shorter syntax, fix minor issues with beamng_agent and beamng_teleop_keyboard
+- **Minor bug fixes:** fix the vehicle's name in control.py in beamng_agent  
+
 Version 0.4 
 =========================
 - **LIDAR Orientation:** Corrected the orientation of the LIDAR sensor.
