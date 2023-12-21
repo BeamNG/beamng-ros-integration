@@ -60,7 +60,7 @@ It needs to be configured to contain the correct IP address of the machine hosti
 Using it will start up a node that connects to the simulation and starts up a scenario as defined in the `beamng_control/config/simple_scenario.json`.
 Other scenario specifications are available in the same directory.
 
-![ROS Demo GIF](https://github.com/BeamNG/beamng-ros-integration/raw/master/media/ROS_demo_gif.gif)
+<img src="https://github.com/BeamNG/beamng-ros-integration/raw/master/media/ROS_demo_gif.gif" alt="ROS Demo GIF" width="700" />
 
 
 
