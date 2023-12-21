@@ -11,17 +11,19 @@ import beamng_msgs.msg as bng_msgs
 from pathlib import Path
 from distutils.version import LooseVersion
 
-MIN_BNG_VERSION_REQUIRED = '0.18.0'
+MIN_BNG_VERSION_REQUIRED = '0.31.0'
 NODE_NAME = 'beamng_agent'
 
 class VehicleControl(object):
 
     def __init__(self, vehicle_id):
-        params = rospy.get_param("beamng")
-        self.game_client = bngpy.BeamNGpy(params['host'], params['port'], remote=True)
+        params = rospy.get_param("beamng")        
+        self.game_client = bngpy.BeamNGpy(params['host'], params['port'])
+        # self.game_client = bngpy.BeamNGpy(params['host'], params['port'], remote=True)
 
         try:
-            self.game_client.open(launch=False, deploy=False)
+            # self.game_client.open(launch=False, deploy=False)
+            self.game_client.open(listen_ip='*',launch=False, deploy=False)
             rospy.loginfo("Successfully connected to BeamNG.tech.")
         except TimeoutError:
             rospy.logerr("Could not establish game connection, check whether BeamNG.tech is running.")

@@ -1,5 +1,0 @@
-<launch>
-    <include file="$(find beamng_agent)/launch/control.launch">
-        <arg name="vehicle_id" value="ego_vehicle"/>
-    </include>
-</launch>

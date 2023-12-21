@@ -8,7 +8,7 @@
     {
       "name": "ego_vehicle",
       "model": "etk800",
-      "position": [-717, 101, 118],
+      "position": [56.977,49.188,119.608],
       "rotation": [0, 0, 0.3826834, 0.9238795],
       "sensors_classical": [
         {
