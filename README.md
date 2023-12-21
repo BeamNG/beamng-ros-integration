@@ -25,6 +25,9 @@ For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
 
 As of now the BeamNG ROS integration supports one package for the **remote** control of the simulation platform and one package for the control of a driving agent. A third package manages custom messages.
 
+
+
+
 <a name="prereqs"></a>
 
 ## Prerequirements
@@ -57,18 +60,22 @@ It needs to be configured to contain the correct IP address of the machine hosti
 Using it will start up a node that connects to the simulation and starts up a scenario as defined in the `beamng_control/config/simple_scenario.json`.
 Other scenario specifications are available in the same directory.
 
+<img src="https://github.com/BeamNG/beamng-ros-integration/raw/master/media/ROS_demo_gif.gif" alt="ROS Demo GIF" width="700" />
+
+
+
 ## Compatibility  
 
 Running the BeamNG ROS integration requires three individual software components, here is a list of compatible versions.
 
 | BeamNG.tech | BeamNGpy | BeamNG ROS Integration |
 |-------------|----------|------------------------|
-| 0.30        |1.27      | 0.4                    |
+| 0.30        |1.27.1    | 0.4                    |
 | 0.29        |1.26.1    | 0.3                    |
 | 0.28        |1.26      | 0.2.1                  |
 | 0.27        |1.25.1    | 0.2                    |
 | 0.26        |1.24      | 0.1.1                  |
-| 0.25        |1.23      | 0.1                    |
+| 0.25        |1.23.1    | 0.1                    |
 
 
 ## Troubleshooting
