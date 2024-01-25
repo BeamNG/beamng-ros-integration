@@ -3,6 +3,8 @@
     <arg name="scenario" default="west_coast_rviz_demo" 
     doc="[
     west_coast_with_electrics,
+    west_coast_rviz_demo, 
+    west_coast_with_all_sensors,
     west_coast_with_imu, 
     utah_scenario_with_cam_lidar_and_imu, 
     west_coast_with_lidar

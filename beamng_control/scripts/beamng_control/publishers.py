@@ -1,11 +1,10 @@
+
 from abc import ABC, abstractmethod
 import rospy
 import numpy as np
 
 np.float = np.float64  # temp fix for following import
 import ros_numpy
-from sensor_msgs.point_cloud2 import PointCloud2
-from sensor_msgs.msg import Range
 import tf
 import tf2_ros
 from cv_bridge import CvBridge, CvBridgeError
@@ -14,19 +13,22 @@ from cv_bridge import CvBridge
 
 import threading
 
-import sensor_msgs
-import geometry_msgs.msg as geom_msgs
 import std_msgs.msg
-from tf.transformations import quaternion_from_euler, quaternion_multiply
-import tf.transformations as tf_transformations
-
-
-import beamngpy.sensors as bng_sensors
-# from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
-
+import sensor_msgs
+from sensor_msgs.msg import Range
+import geometry_msgs.msg as geom_msgs
+from geometry_msgs.msg import Point as geom_msgs_Point
 from visualization_msgs.msg import Marker, MarkerArray
+from sensor_msgs.point_cloud2 import PointCloud2
+import tf.transformations as tf_transformations
+from tf.transformations import quaternion_from_euler, quaternion_multiply
+
+
+
 
 import beamng_msgs.msg as bng_msgs
+import beamngpy.sensors as bng_sensors
+# from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
 
 
 def get_sensor_publisher(sensor):
@@ -173,15 +175,13 @@ class IMUPublisher(SensorDataPublisher):
         return msg
 
 
-class UltrasonicPublisher(SensorDataPublisher):
     # def __init__(self, sensor, topic_id):
         # super().__init__(sensor,
         #                  topic_id,
         #                  bng_msgs.USSensor)
+class UltrasonicPublisher(SensorDataPublisher):
     def __init__(self, sensor, topic_id, vehicle):
-        super().__init__(sensor,
-                         topic_id,
-                         sensor_msgs.msg.Range)
+        super().__init__(sensor, topic_id, Range)
         self.listener = tf.TransformListener()
         sensor_name = topic_id.split("/")[-1]
         self.frame_USSensor_sensor = f'{vehicle.vid}_{sensor_name}'
@@ -193,13 +193,16 @@ class UltrasonicPublisher(SensorDataPublisher):
         data = self._sensor.poll()
         USSensor_msg = Range()
         USSensor_msg.radiation_type = Range.ULTRASOUND
+        # USSensor_msg.radiation_type = Range.INFRARED
         USSensor_msg.header.frame_id =  self.frame_USSensor_sensor 
         USSensor_msg.header.stamp = self.current_time
         USSensor_msg.field_of_view = 0.1
         USSensor_msg.min_range = 0.15
         USSensor_msg.max_range = 2.5
         USSensor_msg.range =  data['distance']
+        
         # rospy.logdebug(f' USSensor_msg {USSensor_msg}')
+        rospy.logdebug(f' USSensor_msg data {data}')
 
         try:
             (trans_map, _) = self.listener.lookupTransform(self.frame_map, self.frame_USSensor_sensor, USSensor_msg.header.stamp)
@@ -211,6 +214,7 @@ class UltrasonicPublisher(SensorDataPublisher):
         # msg.distance = data['distance']
         # return msg
         return USSensor_msg
+
 
 
 class ElectricsPublisher(SensorDataPublisher):
@@ -441,7 +445,6 @@ class BBoxImgPublisher(CameraDataPublisher):
 
 
 class CameraPublisher(BNGPublisher):
-
     def __init__(self, sensor, topic_id, vehicle):
         self._sensor = sensor
         self._cv_helper = CvBridge()
@@ -489,47 +492,6 @@ class CameraPublisher(BNGPublisher):
         for pub in self._publishers:
             pub.current_time = current_time
             pub.publish(current_time, data)
-
-
-# class LidarPublisher(SensorDataPublisher):
-
-#     def __init__(self, sensor, topic_id, vehicle):
-#         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
-#         self.listener = tf.TransformListener()
-#         # self.frame_lidar_sensor = 'lidar_link'
-#         sensor_name = topic_id.split("/")[-1]
-#         self.frame_lidar_sensor = f'{vehicle.vid}_{sensor_name}'
-
-#     def _make_msg(self):
-#         header = std_msgs.msg.Header()
-#         header.frame_id = self.frame_lidar_sensor
-#         header.stamp = self.current_time
-
-#         readings_data = self._sensor.poll()
-#         points = np.array(readings_data['pointCloud'])
-#         colours = readings_data['colours']
-
-#         pointcloud_fields = [('x', np.float32),
-#                              ('y', np.float32),
-#                              ('z', np.float32),
-#                              ('intensity', np.float32)]
-
-#         try:
-#             (trans_map, _) = self.listener.lookupTransform(self.frame_map, self.frame_lidar_sensor, header.stamp)
-#         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-#             rospy.logwarn(f'No transform between {self.frame_map} and '
-#                           f'{self.frame_lidar_sensor} available with exception: {e}')
-#             points = np.zeros((0, 3))
-#             colours = np.zeros((0,))
-#             trans_map = np.zeros(3)
-#         pointcloud_data = np.zeros(points.shape[0], dtype=pointcloud_fields)
-#         pointcloud_data['x'] = points[:, 0] - trans_map[0]
-#         pointcloud_data['y'] = points[:, 1] - trans_map[1]
-#         pointcloud_data['z'] = points[:, 2] - trans_map[2]
-#         pointcloud_data['intensity'] = np.array(colours)
-#         msg = ros_numpy.msgify(PointCloud2, pointcloud_data)
-#         msg.header = header
-#         return msg
 
 
 class LidarPublisher(SensorDataPublisher):
@@ -597,7 +559,7 @@ class VehiclePublisher(BNGPublisher):
         # self.alignment_quat = np.array([1, 0, 0, 0])
         self.current_time = rospy.get_rostime()
 
-        self.node_name = node_name
+        # self.node_name = node_name
         for sensor_name, sensor in vehicle.sensors.items():
             topic_id = [node_name, vehicle.vid, sensor_name]
             topic_id = '/'.join([str(x) for x in topic_id])
@@ -666,7 +628,7 @@ class VehiclePublisher(BNGPublisher):
         mark.color.r = 0.0
         mark.color.g = 1.0
         mark.color.b = 0.0
-        mark.color.a = 1.0
+        mark.color.a = 0.5
 
         return mark
 
@@ -681,7 +643,7 @@ class VehiclePublisher(BNGPublisher):
                                         self._vehicle.vid)
             self.visualizer.publish(mark)
 
-
+# Ori
 class NetworkPublisher(BNGPublisher):
 
     def __init__(self, game_client, node_name):
@@ -722,8 +684,8 @@ class NetworkPublisher(BNGPublisher):
             mark.pose.orientation.z = 0
             mark.pose.orientation.w = 1
 
-            mark.scale.x = 2
-            mark.scale.y = 1
+            mark.scale.x = 1
+            mark.scale.y = 0.5
 
             mark.color.r = 1
             mark.color.b = 0
@@ -742,3 +704,189 @@ class NetworkPublisher(BNGPublisher):
         if self._road_network is None:
             self.set_up_road_network_viz()
         self._pub.publish(self._road_network.markers)
+
+
+class NetworkPublisherM(BNGPublisher):
+
+    def __init__(self, game_client, node_name):
+        self.frame_map = 'map'
+        self._game_client = game_client
+        self._road_network = None
+        self._node_name = node_name
+        topic_id = '/'.join([node_name, 'middle_road_network'])
+        self._pub = rospy.Publisher(topic_id, MarkerArray, queue_size=1)
+        self.current_time = rospy.get_rostime()
+
+    def set_up_road_network_viz(self):
+        roads = self._game_client.get_roads()
+        network_def = dict()
+        for r_id, r_inf in roads.items():
+            if r_inf['drivability'] != '-1':
+                network_def[int(r_id)] = self._game_client.get_road_edges(r_id)
+
+        self._road_network = MarkerArray()
+        for r_id, road in network_def.items():
+            # rospy.logdebug(f'++++++++++\nroad: {road}')
+            mark = Marker()
+            mark.header = std_msgs.msg.Header()
+            mark.header.frame_id = self.frame_map
+            mark.header.stamp = self.current_time
+            mark.type = Marker.LINE_STRIP
+            ns = self._node_name
+            mark.ns = ns
+            mark.action = Marker.ADD
+            mark.id = r_id
+            mark.lifetime = rospy.Duration(0)  # leave them up forever
+
+            mark.pose.position.x = 0
+            mark.pose.position.y = 0
+            mark.pose.position.z = 0
+            mark.pose.orientation.x = 0
+            mark.pose.orientation.y = 0
+            mark.pose.orientation.z = 0
+            mark.pose.orientation.w = 1
+
+            mark.scale.x = 1
+            mark.scale.y = 0.5
+
+            mark.color.r = 0.5  
+            mark.color.b = 0.5  
+            mark.color.g = 0.5  
+            mark.color.a = 1
+            for r_point in road:
+                r_point = r_point['middle']
+                p = geom_msgs.Point(r_point[0], r_point[1], r_point[2])
+                mark.points.append(p)
+            self._road_network.markers.append(mark)
+        marker_num = len(self._road_network.markers)
+        rospy.logdebug(f'the road network contains {marker_num} markers')
+
+    def publish(self, current_time):
+        self.current_time = current_time
+        if self._road_network is None:
+            self.set_up_road_network_viz()
+        self._pub.publish(self._road_network.markers)
+
+class NetworkPublisherR(BNGPublisher):
+
+    def __init__(self, game_client, node_name):
+        self.frame_map = 'map'
+        self._game_client = game_client
+        self._road_network = None
+        self._node_name = node_name
+        topic_id = '/'.join([node_name, 'right_road_network'])
+        self._pub = rospy.Publisher(topic_id, MarkerArray, queue_size=1)
+        self.current_time = rospy.get_rostime()
+
+    def set_up_road_network_viz(self):
+        roads = self._game_client.get_roads()
+        network_def = dict()
+        for r_id, r_inf in roads.items():
+            if r_inf['drivability'] != '-1':
+                network_def[int(r_id)] = self._game_client.get_road_edges(r_id)
+
+        self._road_network = MarkerArray()
+        for r_id, road in network_def.items():
+            # rospy.logdebug(f'++++++++++\nroad: {road}')
+            mark = Marker()
+            mark.header = std_msgs.msg.Header()
+            mark.header.frame_id = self.frame_map
+            mark.header.stamp = self.current_time
+            mark.type = Marker.LINE_STRIP
+            ns = self._node_name
+            mark.ns = ns
+            mark.action = Marker.ADD
+            mark.id = r_id
+            mark.lifetime = rospy.Duration(0)  # leave them up forever
+
+            mark.pose.position.x = 0
+            mark.pose.position.y = 0
+            mark.pose.position.z = 0
+            mark.pose.orientation.x = 0
+            mark.pose.orientation.y = 0
+            mark.pose.orientation.z = 0
+            mark.pose.orientation.w = 1
+
+            mark.scale.x = 0.5
+            mark.scale.y = 0.5
+
+            mark.color.r = 1
+            mark.color.b = 0
+            mark.color.g = 0
+            mark.color.a = 1
+            for r_point in road:
+                r_point = r_point['right']
+                p = geom_msgs.Point(r_point[0], r_point[1], r_point[2])
+                mark.points.append(p)
+            self._road_network.markers.append(mark)
+        marker_num = len(self._road_network.markers)
+        rospy.logdebug(f'the road network contains {marker_num} markers')
+
+    def publish(self, current_time):
+        self.current_time = current_time
+        if self._road_network is None:
+            self.set_up_road_network_viz()
+        self._pub.publish(self._road_network.markers)
+
+class NetworkPublisherL(BNGPublisher):
+
+    def __init__(self, game_client, node_name):
+        self.frame_map = 'map'
+        self._game_client = game_client
+        self._road_network = None
+        self._node_name = node_name
+        topic_id = '/'.join([node_name, 'left_road_network'])
+        self._pub = rospy.Publisher(topic_id, MarkerArray, queue_size=1)
+        self.current_time = rospy.get_rostime()
+
+    def set_up_road_network_viz(self):
+        roads = self._game_client.get_roads()
+        network_def = dict()
+        for r_id, r_inf in roads.items():
+            if r_inf['drivability'] != '-1':
+                network_def[int(r_id)] = self._game_client.get_road_edges(r_id)
+
+        self._road_network = MarkerArray()
+        for r_id, road in network_def.items():
+            # rospy.logdebug(f'++++++++++\nroad: {road}')
+            mark = Marker()
+            mark.header = std_msgs.msg.Header()
+            mark.header.frame_id = self.frame_map
+            mark.header.stamp = self.current_time
+            mark.type = Marker.LINE_STRIP
+            ns = self._node_name
+            mark.ns = ns
+            mark.action = Marker.ADD
+            mark.id = r_id
+            mark.lifetime = rospy.Duration(0)  # leave them up forever
+
+            mark.pose.position.x = 0
+            mark.pose.position.y = 0
+            mark.pose.position.z = 0
+            mark.pose.orientation.x = 0
+            mark.pose.orientation.y = 0
+            mark.pose.orientation.z = 0
+            mark.pose.orientation.w = 1
+
+            mark.scale.x = 0.5
+            mark.scale.y = 0.5
+
+            mark.color.r = 1
+            mark.color.b = 0
+            mark.color.g = 0
+            mark.color.a = 1
+            for r_point in road:
+                r_point = r_point['left']
+                p = geom_msgs.Point(r_point[0], r_point[1], r_point[2])
+                mark.points.append(p)
+            self._road_network.markers.append(mark)
+        marker_num = len(self._road_network.markers)
+        rospy.logdebug(f'the road network contains {marker_num} markers')
+
+    def publish(self, current_time):
+        self.current_time = current_time
+        if self._road_network is None:
+            self.set_up_road_network_viz()
+        self._pub.publish(self._road_network.markers)
+
+

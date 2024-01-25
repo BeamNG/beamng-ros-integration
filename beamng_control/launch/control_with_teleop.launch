@@ -1,0 +1,9 @@
+<launch>
+
+    <!-- Loading BeamNG-ROS bridge -->
+    <include file="$(find beamng_control)/launch/control.launch" />
+
+    <!-- Loading beamng_agent node -->
+    <include file="$(find beamng_teleop_keyboard)/launch/teleop.launch" />
+
+</launch>

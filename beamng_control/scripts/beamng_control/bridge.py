@@ -22,12 +22,8 @@ import beamngpy as bngpy
 # ROS-BeamNGpy custome message 
 import beamng_msgs.msg as bng_msgs
 import beamng_msgs.srv as bng_srv
-from beamng_control.publishers import VehiclePublisher, NetworkPublisher, get_sensor_publisher
+from beamng_control.publishers import VehiclePublisher, NetworkPublisher, NetworkPublisherR, NetworkPublisherL, NetworkPublisherM, get_sensor_publisher
 from beamng_control.sensorHelper import get_sensors_classical, get_sensors_automation
-<<<<<<< HEAD
-=======
-
->>>>>>> 757c76547f993d3494cd9b11d103a7693f67596e
 
 
 
@@ -271,6 +267,7 @@ class BeamNGBridge(object):
                                  rot_quat=v_spec['rotation'])
             rospy.logdebug(f'vehicle in decode_scenario: {vehicle}')
 
+
         on_scenario_start = list()
         wp_key = 'weather_presets'
         if wp_key in scenario_spec.keys():
@@ -283,8 +280,9 @@ class BeamNGBridge(object):
             on_scenario_start.append(tod)
         net_viz_key = 'network_vizualization'
         if net_viz_key in scenario_spec and scenario_spec[net_viz_key] == 'on':
-            self._publishers.append(NetworkPublisher(self.game_client,
-                                                     NODE_NAME))
+            self._publishers.append(NetworkPublisherR(self.game_client, NODE_NAME))
+            self._publishers.append(NetworkPublisherL(self.game_client, NODE_NAME))
+            self._publishers.append(NetworkPublisherM(self.game_client, NODE_NAME))
         return scenario, on_scenario_start, vehicle_list
 
 

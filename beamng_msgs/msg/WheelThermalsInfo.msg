@@ -1,0 +1,4 @@
+string id
+float32 brake_surface_temperature
+float32 brake_thermalefficiency
+float32 brake_core_temperature
