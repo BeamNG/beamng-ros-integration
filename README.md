@@ -16,6 +16,7 @@ For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
  - [Getting Started](#getstart)
  - [Compatibility](#compatibility)
  - [Troubleshooting](#troubleshooting)
+ - [Contributions](#contributions)
  
 <a name="docs"></a>
 ## Documentation
