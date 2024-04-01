@@ -46,7 +46,35 @@ The BeamNG ROS integration is compatible with the ROS 1 distributions Melodic Mo
 
 To use this project, a basic knowledge of the BeamNG.tech simulator and the BeamNGpy is neccessary. We recommend to familiarize yourself first with [BeamNGpy][1] to get a basic understanding of the platform before using the BeamNG ROS Integration.
 
-After setting up BeamNG.tech and BeamNGpy with a python environment, the simulation needs to be started through BeamNGpy.
+After setting up BeamNG.tech and BeamNGpy with a python environment, the simulation needs to be started through BeamNGpy or through the excutable file ```exe```.
+
+**Method 1: Using beamngpy**
+
+To start the simulator via Python and beamngpy, follow these steps
+    - Open your command prompt.
+    - Execute the following Python code:
+
+
+```shell
+from beamngpy import BeamNGpy, Scenario, Vehicle
+bng = BeamNGpy('localhost', 64256)  # Initialize the BeamNGpy instance to connect to the simulator
+bng.open(listen_ip='*')  # Open the simulator with an open listening IP
+```
+
+This method initializes the BeamNGpy instance, connecting to the BeamNG.Tech simulator, and then opens the simulator to listen for incoming connections.
+
+
+**Method 2: Using Command Prompt**
+
+Alternatively, you can start the simulator directly from the command prompt:
+    - Open your command prompt.
+    - Navigate to your simulator's directory.
+    - Paste and execute the following command
+
+```shell
+Bin64\BeamNG.tech.x64.exe -rport 64256 -nosteam -lua registerCoreModule('tech/techCore')
+```
+
 
 The ROS packages from this repository need to be added and build in your catkin workspace.
 See the [ROS tutorials](http://wiki.ros.org/ROS/Tutorials) for more information on how to set up a catkin workspace.
@@ -54,7 +82,7 @@ See the [ROS tutorials](http://wiki.ros.org/ROS/Tutorials) for more information 
 A node connecting ROS to the simulation can then be started with the help of the `example.launch` file in the `beamng_control` package through the command:
 
 ```shell
-roslaunch beamng_control example.launch
+roslaunch beamng_control control.launch
 ```
 
 It needs to be configured to contain the correct IP address of the machine hosting the simulation.
