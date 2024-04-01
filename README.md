@@ -79,7 +79,7 @@ Bin64\BeamNG.tech.x64.exe -rport 64256 -nosteam -lua registerCoreModule('tech/te
 The ROS packages from this repository need to be added and build in your catkin workspace.
 See the [ROS tutorials](http://wiki.ros.org/ROS/Tutorials) for more information on how to set up a catkin workspace.
 
-A node connecting ROS to the simulation can then be started with the help of the `example.launch` file in the `beamng_control` package through the command:
+A node connecting ROS to the simulation can then be started with the help of the `control.launch` file in the `beamng_control` package through the command:
 
 ```shell
 roslaunch beamng_control control.launch
