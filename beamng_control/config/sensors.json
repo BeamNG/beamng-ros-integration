@@ -18,29 +18,45 @@
       "is_using_shared_memory": false,
       "vertical_resolution": 64,
       "vertical_angle": 26.9,
-      "rays_per_second": 1310720,
-      "frequency": 10,
-      "horizontal_angle": 360,
+      "frequency": 3,
+      "is_rotate_mode":true,
+      "is_360_mode":false,
+      "horizontal_angle": 120,
       "max_distance": 85
     }
   },
   "Ultrasonic": {
     "smallrange": {
-      "is_visualised": false,
+      "is_visualised": true,
       "is_streaming": false,
       "range_min_cutoff": 0.15,
       "range_direct_max_cutoff": 2.5
     },
     "midrange": {
       "is_visualised": false,
+      "is_streaming": false,
       "range_min_cutoff": 0.15,
       "range_direct_max_cutoff": 4.5
     },
     "largerange": {      
-    "is_visualised": false,
-    "range_min_cutoff": 0.15,
-    "range_direct_max_cutoff": 5.0
+      "is_visualised": false,
+      "is_streaming": false,
+      "range_min_cutoff": 0.15,
+      "range_direct_max_cutoff": 5.0
 
     }
+  },
+      "AdvancedIMU": {
+        "gfx_update_time": 0.0,
+        "physics_update_time": 0.01,
+        "accel_window_width": null,
+        "gyro_window_width": null,
+        "accel_frequency_cutoff": null,
+        "gyro_frequency_cutoff": null,
+        "is_send_immediately": false,
+        "is_using_gravity": false,
+        "is_visualised": true,
+        "is_snapping_desired": false,
+        "is_force_inside_triangle": false
   }
 }

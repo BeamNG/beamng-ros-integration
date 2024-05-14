@@ -12,10 +12,11 @@ For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
 
  - [Documentation](#docs)
  - [Features](#features) 
- - [Prerequirements](#prereqs)
+ - [Dependencies](#prereqs)
  - [Getting Started](#getstart)
  - [Compatibility](#compatibility)
  - [Troubleshooting](#troubleshooting)
+ - [Contributions](#contributions)
  
 <a name="docs"></a>
 ## Documentation
@@ -30,7 +31,7 @@ As of now the BeamNG ROS integration supports one package for the **remote** con
 
 <a name="prereqs"></a>
 
-## Prerequirements
+## Dependencies
 
 For using the BeamNG ROS integration, a BeamNG.tech build and a python environment with [BeamNGpy][1] installed are required.
 
@@ -43,17 +44,45 @@ The BeamNG ROS integration is compatible with the ROS 1 distributions Melodic Mo
 
 ## Getting Started
 
-To use this project, a basic knowledge of the BeamNG.tech simulator and the BeamNGpy is neccessary. We recommend to familiarize yourself first with [BeamNGpy][1] to get a basic understanding of the platform before using the BeamNG ROS Integration.
+To use this project, a basic knowledge of the BeamNG.tech simulator and the BeamNGpy is necessary. We recommend to familiarize yourself first with [BeamNGpy][1] to get a basic understanding of the platform before using the BeamNG ROS Integration.
 
-After setting up BeamNG.tech and BeamNGpy with a python environment, the simulation needs to be started through BeamNGpy.
+After setting up BeamNG.tech and BeamNGpy with a python environment, the simulation needs to be started through BeamNGpy or through the executable file ```exe```.
+
+**Method 1: Using BeamNGpy**
+
+To start the simulator via Python and BeamNGpy, follow these steps
+    - Open your command prompt.
+    - Execute the following Python code:
+
+
+```shell
+from beamngpy import BeamNGpy, Scenario, Vehicle
+bng = BeamNGpy('localhost', 64256)  # Initialize the BeamNGpy instance to connect to the simulator
+bng.open(None, '-gfx', 'dx11', listen_ip='*',launch=True)  # Open the simulator with an open listening IP using DirectX11 renderer, use 'vk' instead of 'dx11' for Vulkan renderer
+```
+
+This method initializes the BeamNGpy instance, connecting to the BeamNG.Tech simulator, and then opens the simulator to listen for incoming connections.
+
+
+**Method 2: Using Command Prompt**
+
+Alternatively, you can start the simulator directly from the command prompt:
+    - Open your command prompt.
+    - Navigate to your simulator's directory.
+    - Paste and execute the following command
+
+```shell
+Bin64\BeamNG.tech.x64.exe -gfx dx11 -console -nosteam -tcom-listen-ip 0.0.0.0 -lua extensions.load('tech/techCore');tech_techCore.openServer(64256)
+```
+
 
 The ROS packages from this repository need to be added and build in your catkin workspace.
 See the [ROS tutorials](http://wiki.ros.org/ROS/Tutorials) for more information on how to set up a catkin workspace.
 
-A node connecting ROS to the simulation can then be started with the help of the `example.launch` file in the `beamng_control` package through the command:
+A node connecting ROS to the simulation can then be started with the help of the `control.launch` file in the `beamng_control` package through the command:
 
 ```shell
-roslaunch beamng_control example.launch
+roslaunch beamng_control control.launch
 ```
 
 It needs to be configured to contain the correct IP address of the machine hosting the simulation.
@@ -70,6 +99,8 @@ Running the BeamNG ROS integration requires three individual software components
 
 | BeamNG.tech | BeamNGpy | BeamNG ROS Integration |
 |-------------|----------|------------------------|
+| 0.32        |1.29      | 0.5                    |
+| 0.31        |1.28      | 0.4.1                  |
 | 0.30        |1.27.1    | 0.4                    |
 | 0.29        |1.26.1    | 0.3                    |
 | 0.28        |1.26      | 0.2.1                  |

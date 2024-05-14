@@ -1,0 +1,26 @@
+{
+  "version": 0.1,
+  "level": "west_coast_usa",
+  "name": "advanced_imu_scenario",
+  "mode": "None",
+  "network_vizualization": "on",
+  "vehicles": [
+    {
+      "name": "ego_vehicle",
+      "model": "etk800",
+      "position": [56.977, 49.188, 119.608],
+      "rotation": [0, 0, 0, 1],
+      "sensors_automation": [
+        {
+          "name": "advance_imu",
+          "type": "AdvancedIMU",
+          "gfx_update_time": 0.0,
+          "physics_update_time": 0.01,
+          "position": [0.5, 0.0, 1.0],
+          "rotation": [0, -1, 0],
+          "is_visualised": true
+        }
+      ]
+    }
+  ]
+}

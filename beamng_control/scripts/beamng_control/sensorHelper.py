@@ -2,7 +2,7 @@ import rospy
 import copy
 
 import beamngpy.sensors as bng_sensors
-from beamng_control.publishers import LidarPublisher, CameraPublisher, UltrasonicPublisher
+from beamng_control.publishers import LidarPublisher, CameraPublisher, UltrasonicPublisher, AdvancedIMUPublisher
 
 
 # from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
@@ -46,6 +46,9 @@ def get_lidar(bng,
                                        f'message:\n{e}')
     return lidar
 
+
+
+
 def get_ultrasonic(bng,
                    name,
                    vehicle,
@@ -78,6 +81,25 @@ def get_ultrasonic(bng,
                                        f'message:\n{e}')
     return us
 
+
+
+def get_advanced_imu(bng,
+                    name,
+                    vehicle,
+                    position,
+                    rotation,
+                    **spec):
+    try:
+        AdImu = bng_sensors.AdvancedIMU(bng=bng,
+                                    name=name,
+                                    vehicle=vehicle,
+                                    pos=position,
+                                    dir=rotation,
+                                    **spec)
+    except TypeError as e:
+        raise SensorSpecificationError(f'Could not get AdvancedIMU instance. '
+                                       f'Original error message:\n{e}')
+    return AdImu
 
 
 
@@ -158,6 +180,7 @@ def get_imu(position=None, node=None, **spec):
                                        '\nOriginal error '
                                        f'message:\n{e}')
     return imu
+
 
 def select_sensor_definition(sensor_type_name, sensor_defs):
     """
@@ -245,7 +268,7 @@ _automation_sensors = ['Camera',
                    'Lidar',
                    'CameraNoise',
                    'LidarNoise',
-                   'AdvancedIMU',  # unsure about this one
+                   'AdvancedIMU',  
                    'Ultrasonic',
                    'PowerTrain',  # unsure about this one
                    'Radar',  # unsure about this one
@@ -254,7 +277,8 @@ _automation_sensors = ['Camera',
 _sensor_automation_type_publisher_getter = {
     'Lidar': LidarPublisher,
     'Camera': CameraPublisher,
-    'Ultrasonic': UltrasonicPublisher
+    'Ultrasonic': UltrasonicPublisher,
+    'AdvancedIMU': AdvancedIMUPublisher
 }
 
 _sensor_getters = {
@@ -263,9 +287,12 @@ _sensor_getters = {
     'GForces': bng_sensors.GForces,
     'Electrics': bng_sensors.Electrics,
     'IMU': get_imu,
+    
     'Camera': get_camera,
     'Ultrasonic': get_ultrasonic,
-    'Lidar': get_lidar
+    'Lidar': get_lidar,
+    'AdvancedIMU': get_advanced_imu
+    
     # 'Ultrasonic': bng_sensors.Ultrasonic,
     # 'CameraNoise': get_camera_noise_sensor,
     # 'LidarNoise': get_lidar_noise_sensor

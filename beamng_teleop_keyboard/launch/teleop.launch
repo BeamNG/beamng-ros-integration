@@ -1,7 +1,7 @@
 <launch>
 
     <!-- Calling Twist_message converter node -->
-    <node pkg="beamng_teleop_keyboard" type="converter" name="twist_message_converter"/>
+    <node pkg="beamng_teleop_keyboard" type="converter" name="twist_message_converter" output="screen"/>
 
     <!-- Calling Teleop node -->
     <node pkg="beamng_teleop_keyboard" type="teleop_key" name="teleop_node" output="screen" />
