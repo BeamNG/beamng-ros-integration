@@ -8,11 +8,11 @@ Version 0.5
 - **BeamNGpy API Update:** Updated connection API in BeamNGpy:
     - Added `-gfx` to `<game_client>.open`, to choose the renderer i.e., `dx11` for DirectX11, and `vk` for Vulkan.
 
-- **Removed the `imu` sensor:** the classic vehicle-attachable imu sensor is removed.
+- **Removed the imu sensor:** the classic vehicle-attachable imu sensor is removed.
 
 - **Support for Advanced IMU:** Added an automated Advanced IMU to ROS support.
 
-- **Support for AI driving node:** AI mode is added to ``beamng_agent```.
+- **Support for AI driving node:** AI mode is added to ``beamng_agent``.
 
 Version 0.4
 =========================
