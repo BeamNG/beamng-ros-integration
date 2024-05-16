@@ -12,7 +12,12 @@ Version 0.5
 
 - **Support for Advanced IMU:** Added an automated Advanced IMU to ROS support.
 
-- **Support for AI driving node:** AI mode is added to ``beamng_agent``.
+- **Support for AI driving node:** AI mode is added to ``beamng_agent``.   
+
+Note: use the following code to upgrade your imu to advanceIMU
+| From | To |
+|------|----|
+| ```python imu_pos = IMU(pos=(0.73, 0.51, 0.8), debug=True) vehicle.sensors.attach('imu_pos', imu_pos) readings = vehicle.sensors.poll()['imu_pos'] ``` | ```python imu_pos = AdvancedIMU(...) readings = imu_pos.poll() ``` |
 
 Version 0.4
 =========================
