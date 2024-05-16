@@ -16,15 +16,18 @@ Version 0.5
 
 Note: use the following code to upgrade your imu to advanceIMU
 from:
+
 imu_pos = IMU(pos=(0.73, 0.51, 0.8), debug=True)
+
 vehicle.sensors.attach('imu_pos', imu_pos)
+
 readings = vehicle.sensors.poll()['imu_pos']
 
-
 to:
-imu_pos = AdvancedIMU(...)
-readings = imu_pos.poll()
 
+imu_pos = AdvancedIMU(...)
+
+readings = imu_pos.poll()
 
 Version 0.4
 =========================
