@@ -28,6 +28,8 @@ add_service_files(
   StartScenario.srv
   TeleportVehicle.srv
   PublishRoadNetwork.srv
+  AiControl.srv
+  NavigateToPosition.srv
 )
 add_action_files(
   DIRECTORY action

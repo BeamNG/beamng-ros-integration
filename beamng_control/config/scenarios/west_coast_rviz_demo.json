@@ -8,21 +8,12 @@
     {
       "name": "ego_vehicle",
       "model": "etk800",
-      "position": [56.977,49.188,119.608],
-      "rotation": [0, 0, 0.3826834, 0.9238795],
+      "position": [56.977, 49.188, 119.608],
+      "rotation": [0, 0, 0, 1],
       "sensors_classical": [
         {
           "name": "electrics0",
           "type": "Electrics"
-        },        {
-          "name": "node_imu0",
-          "type": "IMU",
-          "node": 0
-        },
-        {
-          "name": "position_imu0",
-          "type": "IMU",
-          "position": [0.73, 0.51, 0.8]
         },
         {
           "name":"damage0",
@@ -54,14 +45,23 @@
         {
           "name": "ultrasonic_right0",
           "type":"Ultrasonic.smallrange",
-          "position":[-1.2, -2.1, 1.0],
+          "position":[-1.2, -2.1, 0.0],
           "rotation":[-1.0, -1.0, 0.1]
         },
         {
           "name": "ultrasonic_left0",
           "type":"Ultrasonic.smallrange",
-          "position":[1.2, -2.1, 1.0],
+          "position":[1.2, -2.1, 0.0],
           "rotation":[1.0, -1.0, 0.1]
+        },
+        {
+          "name": "advance_imu",
+          "type": "AdvancedIMU",
+          "gfx_update_time": 0.0,
+          "physics_update_time": 0.01,
+          "position": [0.5, 0.0, 1.0],
+          "rotation": [0, -1, 0],
+          "is_visualised": true
         }
       ]
     }

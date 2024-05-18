@@ -2,7 +2,12 @@
     <!-- choose scenario-->
     <arg name="scenario" default="west_coast_rviz_demo" 
     doc="[
+    empty,
     west_coast_with_electrics,
+    west_coast_with_many_vehicles_ultrasonic,
+    GridMap_all,
+    smallgrid_all,
+    west_coast_with_two_ultrasonic,
     west_coast_rviz_demo, 
     west_coast_with_all_sensors,
     west_coast_with_imu, 
@@ -16,12 +21,16 @@
     <arg name="host" default="$(env SIMULATOR_IP)"/>
     <!-- OR you can type your IPV4 here -->
     <!-- <arg name="host" value="192.168.1.107"/> -->
+    
     <node pkg="beamng_control" type="bridge.py" name="beamng_control" output="screen" args="$(arg scenario_config)" >
         <param name="host" value="$(arg host)"/>
         <param name="port" value="$(arg port)"/>
     </node>
-    
-    <arg name="open_rviz" default="true" />
-    <node if="$(arg open_rviz)" name="rviz" pkg="rviz"
-          type="rviz" args="-d $(find beamng_control)/config/rviz/example.rviz" />
+
+  <!-- rviz -->
+    <arg name="open_rviz" value="true"/>
+    <group if="$(arg open_rviz)"> 
+        <node pkg="rviz" type="rviz" name="rviz" required="true"
+            args="-d $(find beamng_control)/config/rviz/example.rviz" />
+    </group>
 </launch>

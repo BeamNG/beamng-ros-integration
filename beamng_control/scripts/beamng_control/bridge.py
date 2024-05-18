@@ -22,12 +22,13 @@ import beamngpy as bngpy
 # ROS-BeamNGpy custome message 
 import beamng_msgs.msg as bng_msgs
 import beamng_msgs.srv as bng_srv
-from beamng_control.publishers import VehiclePublisher, NetworkPublisher, get_sensor_publisher
+from beamng_control.publishers import VehiclePublisher, NetworkPublisher, get_sensor_publisher #, NetworkPublisherR, NetworkPublisherL, NetworkPublisherM
 from beamng_control.sensorHelper import get_sensors_classical, get_sensors_automation
 
 
 
-MIN_BNG_VERSION_REQUIRED = '0.31.0'
+
+MIN_BNG_VERSION_REQUIRED = '0.32.0'
 NODE_NAME = 'beamng_control'
 
 
@@ -46,9 +47,7 @@ class BeamNGBridge(object):
 
     def __init__(self, host, port, sensor_paths=None):
         self.game_client = bngpy.BeamNGpy(host, port)
-        # self.game_client = bngpy.BeamNGpy(host, port, remote=True)
         try:
-            # self.game_client.open(launch=False, deploy=False)
             self.game_client.open(listen_ip='*',launch=False, deploy=False)
             rospy.loginfo("Successfully connected to BeamNG.tech")
         except TimeoutError:
@@ -140,7 +139,6 @@ class BeamNGBridge(object):
                 else:
                     sensor_collection.append(spec)
         rospy.logdebug(f'sensors_classical: {sensor_collection}')
-        # rospy.logdebug(f'noise_sensors_classical: {noise_sensors}')
         for s_spec in sensor_collection:
             s_name = s_spec.pop('name')
             s_type = s_spec.pop('type')
@@ -149,22 +147,10 @@ class BeamNGBridge(object):
                                 self._sensor_defs,
                                 dyn_sensor_properties=s_spec)
             vehicle.attach_sensor(s_name, sensor)
-        # for n_spec in noise_sensors:
-        #     n_name = n_spec.pop('name')
-        #     n_type = n_spec.pop('type')
-        #     sensor = n_spec.pop('base sensor')
-        #     if sensor in vehicle.sensors:
-        #         sensor = vehicle.sensors[sensor]
-        #     else:
-        #         rospy.logerr(f'Could not find sensor with id {sensor} to '
-        #                      f'generate noise sensor of type {n_type}')
-        #     n_spec['sensors_classical'] = sensor
-        #     noise = get_sensors_classical(n_type,
-        #                        self._sensor_defs,
-        #                        dyn_sensor_properties=n_spec)
-        #     vehicle.attach_sensor(n_name, noise)
+
         return vehicle
     
+
     
     
 
@@ -213,6 +199,7 @@ class BeamNGBridge(object):
                 name = s_spec["name"]
 
                 rospy.logdebug(f'Attempting to set up {s_type} sensor.')
+                # send information of sensors to SensorHelper.py then from there to publishers.py
                 sensor, sensor_publisher = get_sensors_automation(s_type,
                                                       self._sensor_defs,
                                                       bng=self.game_client,
@@ -232,12 +219,11 @@ class BeamNGBridge(object):
                     # rospy.logdebug(f' static_sensor_frame  {static_sensor_frame} ')                
                     self._publishers.append(sensor_publisher(sensor, f"{NODE_NAME}/{vehicle.vid}/{name}", vehicle))
 
-    # USED IN NEW CODE 
     @staticmethod
     def get_vehicle_from_dict(v_spec):
         vehicle = bngpy.Vehicle(v_spec['name'], v_spec['model'])
         return vehicle
-
+   
 
     def _scenario_from_json(self, file_name):
         try:
@@ -255,17 +241,20 @@ class BeamNGBridge(object):
         for v_spec in scenario_spec['vehicles']:
             # NOT USED IN NEW CODE
             vehicle = self.get_sensor_classical_from_dict(v_spec)
+
             # self._publishers.append(VehiclePublisher(vehicle, NODE_NAME))  # todo markers need to be added somwhere else
             
             # USED IN NEW CODE 
-            # vehicle = self.get_vehicle_from_dict(v_spec)
             # vehicle = self.get_sensor_classical_from_dict(v_spec, vehicle)
+            # send the vehicle information with classical sensors to publishers.py 
             self._vehicle_publisher = VehiclePublisher(vehicle, NODE_NAME)  # we need this to be published first for tf
             vehicle_list.append(vehicle)
             scenario.add_vehicle(vehicle, 
                                  pos=v_spec['position'],
                                  rot_quat=v_spec['rotation'])
             rospy.logdebug(f'vehicle in decode_scenario: {vehicle}')
+
+
 
         on_scenario_start = list()
         wp_key = 'weather_presets'
@@ -279,8 +268,10 @@ class BeamNGBridge(object):
             on_scenario_start.append(tod)
         net_viz_key = 'network_vizualization'
         if net_viz_key in scenario_spec and scenario_spec[net_viz_key] == 'on':
-            self._publishers.append(NetworkPublisher(self.game_client,
-                                                     NODE_NAME))
+            self._publishers.append(NetworkPublisher(self.game_client, NODE_NAME))
+            # self._publishers.append(NetworkPublisherR(self.game_client, NODE_NAME))
+            # self._publishers.append(NetworkPublisherL(self.game_client, NODE_NAME))
+            # self._publishers.append(NetworkPublisherM(self.game_client, NODE_NAME))
         return scenario, on_scenario_start, vehicle_list
 
 
@@ -295,6 +286,8 @@ class BeamNGBridge(object):
         self.game_client.load_scenario(scenario)
         self.game_client.start_scenario()
         self.set_sensors_automation_from_dict(scenario_spec, vehicle_list)
+
+        
         for hook in on_scenario_start:
             hook()
 
@@ -366,10 +359,13 @@ class BeamNGBridge(object):
                          'required quaternion format:{str(req.rot_quat)}')
             return response
         vehicle_spec['name'] = req.name
-        vehicle = self.get_vehicle_from_dict(vehicle_spec)
+        vehicle = self.get_vehicle_from_dict(vehicle_spec)#wip
         self.game_client.spawn_vehicle(vehicle,
                                        req.pos,
                                        rot_quat=req.rot_quat)
+        
+
+        
         response.success = True
         return response
 
@@ -397,19 +393,7 @@ class BeamNGBridge(object):
         return response
 
 # # TODO: add vehicle.vid
-#     def get_current_vehicles(self, req):
-#         response = bng_srv.GetCurrentVehiclesInfoResponse()
-#         vehicles = list()
-#         list_of_current_vehicles = self.game_client.get_current_vehicles_info()
-#         rospy.loginfo(f'Started scenario "{list_of_current_vehicles}".')
-#         for veh in list_of_current_vehicles.values():
-#             veh_inf = bng_msgs.VehicleInfo()
-#             veh_inf.vehicle_id = veh['name']
-#             veh_inf.model = veh['model']
-#             # veh_inf.vid = veh['id']
-#             vehicles.append(veh_inf)
-#         response.vehicles = vehicles
-#         return response
+
     
 
 

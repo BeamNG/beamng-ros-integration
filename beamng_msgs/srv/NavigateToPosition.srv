@@ -1,0 +1,15 @@
+# NavigateToPosition.srv
+
+# Service to navigate a vehicle to a specified position
+# Inputs:
+#   vehicle_name: Name of the vehicle to navigate
+#   target_x: Target x-coordinate
+#   target_y: Target y-coordinate
+# Outputs:
+#   success: Indicates whether the navigation was successful or not
+
+string vehicle_name        # Name of the vehicle
+float32 target_x           # Target x-coordinate
+float32 target_y           # Target y-coordinate
+---
+string message             # Message indicating the success or failure of the navigation operation

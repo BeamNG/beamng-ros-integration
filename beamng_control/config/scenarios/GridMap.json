@@ -3,7 +3,6 @@
   "level": "GridMap",
   "name": "road_network",
   "mode": "None",
-  "network_vizualization": "on",
   "vehicles": [
     {
       "name": "ego_vehicle",

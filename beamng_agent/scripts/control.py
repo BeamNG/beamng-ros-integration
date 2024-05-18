@@ -6,6 +6,7 @@ import json
 
 import beamngpy as bngpy
 import beamng_msgs.msg as bng_msgs
+from beamng_msgs.srv import AiControl
 
 from pathlib import Path
 from distutils.version import LooseVersion
@@ -19,14 +20,11 @@ class VehicleControl(object):
         # params = rospy.get_param("beamng")       
         host = rospy.get_param("~host", default=None)
         port = rospy.get_param("~port", default=None)
+        driving_mode = rospy.get_param("~driving_mode", default="ai")
         
         self.game_client = bngpy.BeamNGpy(host, port)
-        # self.game_client = bngpy.BeamNGpy("192.168.1.145", 64256)
-        # self.game_client = bngpy.BeamNGpy(params['host'], params['port'], remote=True)
 
         try:
-            # self.game_client.open(launch=False, deploy=False)
-            # self.game_client.open(listen_ip='*')
             self.game_client.open(listen_ip='*',launch=False, deploy=False)
             rospy.loginfo("Successfully connected to BeamNG.tech.")
         except TimeoutError:
@@ -46,10 +44,11 @@ class VehicleControl(object):
             rospy.logfatal("Could not establish vehicle connection, system exit.")
             sys.exit(1)
 
-        control_topic = 'control'
-        rospy.Subscriber(control_topic, bng_msgs.VehicleControl, lambda x: self.send_control_signal(x))
-        # rospy.logdebug(f'subscribing to "{control_topic}" for vehicle control')
+        rospy.Subscriber('/control', bng_msgs.VehicleControl, lambda x: self.send_control_signal(x, driving_mode))
         rospy.on_shutdown(lambda: self.on_shutdown())
+
+        # Create service
+        self.ai_control_service = rospy.Service('ai_control', AiControl, self.ai_control)
 
     def on_shutdown(self):
         self.vehicle_client.disconnect()
@@ -57,15 +56,60 @@ class VehicleControl(object):
         node_name = rospy.get_name()
         rospy.logdebug(f'Shutting down node "{node_name}"')
 
-    def send_control_signal(self, signal):
-        self.vehicle_client.control(steering=signal.steering,
+    def send_control_signal(self, signal, mode):
+        if mode == "ai" :
+            self.vehicle_client.ai_set_mode('span')
+        
+        else:
+            self.vehicle_client.control(steering=signal.steering,
                                     throttle=signal.throttle,
                                     brake=signal.brake,
                                     parkingbrake=signal.parkingbrake,
                                     clutch=signal.clutch,
                                     gear=signal.gear
                                     )
+            
 
+ 
+    def teleport_vehicle(self, req):
+        response = bng_srv.TeleportVehicleResponse()
+        response.success = False
+        if len(req.pos) != 3:
+            rospy.logerr('position param does not fit '
+                         f'required format:{str(req.pos)}')
+            return response
+        if len(req.rot_quat) != 4:
+            rospy.logerr('rotation param does not fit '
+                         f'required quaternion format:{str(req.rot_quat)}')
+            return response
+        success = self.game_client.teleport_vehicle(req.vehicle_id,
+                                                    req.pos,
+                                                    rot_quat=req.rot_quat)
+        if success:
+            response.success = True
+        return response
+    
+    
+    
+#rosservice call /ai_control "enable: true"
+# rosservice call /ai_control "enable: false"
+    def ai_control(self, req):
+        response = AiControl()
+        try:
+            if req.enable:
+                rospy.loginfo("Enabling AI control...")
+                self.vehicle_client.ai_set_mode('span')
+                # return True
+            else:
+                rospy.loginfo("Disabling AI control...")
+                self.vehicle_client.ai_set_mode('disable')
+                # return True
+            # response.success = True
+            # return True
+        except Exception as e:
+            rospy.logerr(f"Failed to set AI mode: {e}")
+            # response.success = False
+            # return False
 
 def main():
     rospy.init_node(NODE_NAME, anonymous=True, log_level=rospy.DEBUG)
@@ -78,7 +122,7 @@ def main():
         sys.exit(1)
 
     argv = rospy.myargv(argv=sys.argv)
-    if len(argv)==2:
+    if len(argv) == 2:
         VehicleControl(argv[1])
     else:
         rospy.logerr("No Vehicle ID given, shutting down node.")

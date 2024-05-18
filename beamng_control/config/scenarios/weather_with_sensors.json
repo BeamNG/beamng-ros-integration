@@ -27,16 +27,6 @@
             {
               "name": "electrics0",
               "type": "Electrics"
-            },
-            {
-              "name": "node_imu",
-              "type": "IMU",
-              "node": 0
-            },
-            {
-              "name": "position_imu",
-              "type": "IMU",
-              "position": [0.73, 0.51, 0.8]
             }
           ],
         "sensors_automation": [
