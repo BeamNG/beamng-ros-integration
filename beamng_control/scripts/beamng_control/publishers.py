@@ -36,7 +36,7 @@ def get_sensor_publisher(sensor):
         bng_sensors.Timer: TimerPublisher,
         bng_sensors.Damage: DamagePublisher,
         bng_sensors.GForces: GForcePublisher,
-        bng_sensors.IMU: IMUPublisher,
+        bng_sensors.AdvancedIMU: IMUPublisher,
         bng_sensors.Electrics: ElectricsPublisher
     }
     for k, v in sensor_mapping.items():
