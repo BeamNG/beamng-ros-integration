@@ -1,6 +1,7 @@
 
 from abc import ABC, abstractmethod
 import rospy
+from rospy import Time
 import numpy as np
 
 np.float = np.float64  # temp fix for following import
@@ -9,27 +10,28 @@ import tf
 import tf2_ros
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
-from cv_bridge import CvBridge
-
+from typing import Dict, List, Any, Type
 import threading
 
-import std_msgs.msg
-import sensor_msgs
-from sensor_msgs.msg import Range, Imu
 import geometry_msgs.msg as geom_msgs
 from geometry_msgs.msg import Point as geom_msgs_Point
 from visualization_msgs.msg import Marker, MarkerArray
-from sensor_msgs.point_cloud2 import PointCloud2
 import tf.transformations as tf_transformations
 from tf.transformations import quaternion_from_euler, quaternion_multiply
-from tf import transformations as tf_trans  # Add this import statement
-
+from tf import transformations as tf_trans 
 
 
 import beamng_msgs.msg as bng_msgs
 import beamngpy.sensors as bng_sensors
-# from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
+import std_msgs.msg
+from sensor_msgs.msg import Range, Imu, NavSatFix, NavSatStatus, Image
+from sensor_msgs.point_cloud2 import PointCloud2
+try:
+    import radar_msgs.msg as radar_msgs
 
+    RADAR_MSGS_FOUND = True
+except ImportError as e:
+    RADAR_MSGS_FOUND = False
 
 def get_sensor_publisher(sensor):
     sensor_mapping = {
@@ -37,14 +39,16 @@ def get_sensor_publisher(sensor):
         bng_sensors.Timer: TimerPublisher,
         bng_sensors.Damage: DamagePublisher,
         bng_sensors.GForces: GForcePublisher,
-        bng_sensors.IMU: IMUPublisher,
         bng_sensors.Electrics: ElectricsPublisher,
-        # bng_sensors.Ultrasonic: UltrasonicPublisher, #wip NOT NEEDED HERE; 
-        # bng_sensors.Camera: CameraPublisher, #wip NOT NEEDED HERE; 
-        # bng_sensors.Lidar: LidarPublisher, #wip NOT NEEDED HERE; 
+        bng_sensors.IdealRadar: IdealRadarPublisher,
+        bng_sensors.Radar: RadarPublisher,
+        bng_sensors.RoadsSensor: RoadsSensorPublisher,
+        bng_sensors.AdvancedIMU: AdvancedIMUPublisher,
+        bng_sensors.Mesh: MeshPublisher,
+        bng_sensors.PowertrainSensor: PowertrainSensorPublisher,
+        bng_sensors.GPS: GPSPublisher
         
-        # RandomImageNoise: CameraPublisher,
-        # RandomLIDARNoise: LidarPublisher
+        # bng_sensors.imu: IMUPublisher,
     }
     for k, v in sensor_mapping.items():
         if isinstance(sensor, k):
@@ -78,6 +82,458 @@ class SensorDataPublisher(BNGPublisher):
         self.current_time = current_time
         msg = self._make_msg()
         self._pub.publish(msg)
+
+
+
+class RadarPublisher(SensorDataPublisher):
+    """
+    Radar sensor publisher publishing radar_msgs :radar_msgs:`RadarReturn` messages
+    if the library is found, custom :external+beamng_msgs:doc:`interfaces/msg/RadarReturn` messages if not.
+
+    You can force the publisher to always send custom BeamNG message type by setting the
+    ``use_beamng_msg_type=True`` argument in the sensor .json definition.
+
+    Args:
+        name: Name of the sensor.
+        config: Arguments of the sensor passed to the BeamNGpy class.
+    """
+
+    def __init__(self, sensor, topic_id, vehicle):
+        """
+        Initializes the RadarPublisher class.
+
+        Args:
+            sensor: The sensor instance being used to poll radar data.
+            topic_id: The ROS topic on which the radar data will be published.
+            vehicle: The vehicle object that the sensor is attached to.
+        """
+        super().__init__(sensor, topic_id, bng_msgs.RadarScan)
+        self.listener = tf.TransformListener()
+        sensor_name = topic_id.split("/")[-1]
+        self.frame_Radar_sensor = f'{vehicle.vid}_{sensor_name}'
+        self.current_time = rospy.get_rostime()
+
+    def _convert_array_to_dict(self, data_array):
+        """
+        Convert the NumPy array from the radar sensor into a dictionary.
+        Adjust the indices according to your sensor data structure.
+        """
+        # Example: Adjust these indices according to the actual data format
+        return {
+            "range": data_array[0],
+            "doppler_velocity": data_array[1],
+            "azimuth": data_array[2],
+            "elevation": data_array[3],
+            "radar_cross_section": data_array[4],
+            "signal_to_noise_ratio": data_array[5],
+            "facing_factor": data_array[6],
+        }
+
+    def _make_msg(self):
+        data = self._sensor.poll()
+
+        # Ensure data exists
+        if data is None:
+            rospy.logwarn("No data received from Radar sensor.")
+            return None
+
+        # Handle the case where data is a NumPy array
+        if isinstance(data, np.ndarray):
+            # Convert the ndarray to a dictionary format.
+            data = self._convert_array_to_dict(data)
+        
+        # Check if the polled data is a dictionary
+        if not isinstance(data, dict):
+            rospy.logwarn(f"Unexpected data type received: {type(data)}")
+            return None
+
+        # Log raw data for debugging
+        # rospy.loginfo(f"Raw data from Radar sensor: {data}")
+
+        # Extract data fields, ensuring they are floats
+        try:
+            range_msg = float(data.get("range", 0.0)[0])  # Get the first value
+            doppler_velocity_msg = float(data.get("doppler_velocity", 0.0)[0])
+            azimuth_msg = float(data.get("azimuth", 0.0)[0])
+            elevation_msg = float(data.get("elevation", 0.0)[0])
+            radar_cross_section_msg = float(data.get("radar_cross_section", 0.0)[0])
+            signal_to_noise_ratio_msg = float(data.get("signal_to_noise_ratio", 0.0)[0])
+            facing_factor_msg = float(data.get("facing_factor", 0.0)[0])
+        except Exception as e:
+            rospy.logwarn(f"Error extracting data fields: {str(e)}")
+            return None
+
+        # Create a RadarReturn message
+        radar_return_msg = bng_msgs.RadarReturn(
+            range=range_msg,
+            doppler_velocity=doppler_velocity_msg,
+            azimuth=azimuth_msg,
+            elevation=elevation_msg,
+            radar_cross_section=radar_cross_section_msg,
+            signal_to_noise_ratio=signal_to_noise_ratio_msg,
+            facing_factor=facing_factor_msg,
+        )
+
+        # Ensure the frame ID is correctly set
+        header = std_msgs.msg.Header(
+            stamp=self.current_time,
+            frame_id=self.frame_Radar_sensor  # corrected variable name
+        )
+
+        # Build and return the RadarScan message
+        msg = bng_msgs.RadarScan(
+            header=header,
+            returns=[radar_return_msg]  # wrap in a list
+        )
+
+        return msg
+
+
+
+
+
+class RoadsSensorPublisher(SensorDataPublisher):
+    """
+    Roads sensor publisher publishing :external+beamng_msgs:doc:`interfaces/msg/RoadsSensor` messages.
+
+    Args:
+        name: Name of the sensor.
+        config: Arguments of the sensor passed to the BeamNGpy class.
+    """
+    def __init__(self, sensor, topic_id, vehicle):
+        super().__init__(sensor, topic_id, bng_msgs.RoadsSensor)
+        self.listener = tf.TransformListener()
+        sensor_name = topic_id.split("/")[-1]
+        self.frame_Roads_sensor = f'{vehicle.vid}_{sensor_name}'
+        self.current_time = rospy.get_rostime()
+
+
+
+    @staticmethod
+    def _make_cubic_polynomial(
+        a: float, b: float, c: float, d: float
+    ) -> bng_msgs.CubicPolynomial:
+        return bng_msgs.CubicPolynomial(a=a, b=b, c=c, d=d)
+
+
+    def xyz_to_point(self, x: float, y: float, z: float) -> geom_msgs.Point:
+        return geom_msgs.Point(x=x, y=y, z=z)
+
+    def _make_msg(self):
+        data = self._sensor.poll()
+
+        # Ensure data exists and is in the expected format
+        if not data:
+            rospy.logwarn("No data received from RoadsSensor.")
+            return None
+
+        # Check if the polled data is a dictionary
+        if not isinstance(data, dict):
+            rospy.logwarn(f"Unexpected data type received: {type(data)}")
+            return None
+
+        # Log raw data for debugging
+        # rospy.loginfo(f"Raw data from RoadsSensor: {data}")
+
+        # Iterate through the data dictionary and handle invalid entries (like floats)
+        valid_data = {}
+        for key, value in data.items():
+            if isinstance(value, dict):
+                valid_data[key] = value
+            else:
+                rospy.logwarn(f"Invalid data entry for key {key}: Expected dict, got {type(value)}")
+        
+        # If no valid data is found, log and return
+        if not valid_data:
+            rospy.logwarn("No valid data entries found in RoadsSensor data.")
+            return None
+
+        # Process the first valid entry (if data is valid)
+        first_key = next(iter(valid_data))
+        data = valid_data[first_key]
+
+        # Extract data fields
+        dist2_cl = data.get("dist2CL", 0.0)
+        dist2_left = data.get("dist2Left", 0.0)
+        dist2_right = data.get("dist2Right", 0.0)
+        half_width = data.get("halfWidth", 0.0)
+        road_radius = data.get("roadRadius", 0.0)
+        heading_angle = data.get("headingAngle", 0.0)
+
+        p0_on_cl = self.xyz_to_point(
+            data.get("xP0onCL", 0.0), data.get("yP0onCL", 0.0), data.get("zP0onCL", 0.0)
+        )
+        p1_on_cl = self.xyz_to_point(
+            data.get("xP1onCL", 0.0), data.get("yP1onCL", 0.0), data.get("zP1onCL", 0.0)
+        )
+        p2_on_cl = self.xyz_to_point(
+            data.get("xP2onCL", 0.0), data.get("yP2onCL", 0.0), data.get("zP2onCL", 0.0)
+        )
+        p3_on_cl = self.xyz_to_point(
+            data.get("xP3onCL", 0.0), data.get("yP3onCL", 0.0), data.get("zP3onCL", 0.0)
+        )
+
+        u_cl = self._make_cubic_polynomial(
+            data.get("uAofCL", 0.0), data.get("uBofCL", 0.0), data.get("uCofCL", 0.0), data.get("uDofCL", 0.0)
+        )
+        v_cl = self._make_cubic_polynomial(
+            data.get("vAofCL", 0.0), data.get("vBofCL", 0.0), data.get("vCofCL", 0.0), data.get("vDofCL", 0.0)
+        )
+
+        u_left_re = self._make_cubic_polynomial(
+            data.get("uAofLeftRE", 0.0), data.get("uBofLeftRE", 0.0), data.get("uCofLeftRE", 0.0), data.get("uDofLeftRE", 0.0)
+        )
+        v_left_re = self._make_cubic_polynomial(
+            data.get("vAofLeftRE", 0.0), data.get("vBofLeftRE", 0.0), data.get("vCofLeftRE", 0.0), data.get("vDofLeftRE", 0.0)
+        )
+
+        u_right_re = self._make_cubic_polynomial(
+            data.get("uAofRightRE", 0.0), data.get("uBofRightRE", 0.0), data.get("uCofRightRE", 0.0), data.get("uDofRightRE", 0.0)
+        )
+        v_right_re = self._make_cubic_polynomial(
+            data.get("vAofRightRE", 0.0), data.get("vBofRightRE", 0.0), data.get("vCofRightRE", 0.0), data.get("vDofRightRE", 0.0)
+        )
+
+        start_cl = self.xyz_to_point(
+            data.get("xStartCL", 0.0), data.get("yStartCL", 0.0), data.get("zStartCL", 0.0)
+        )
+        start_l = self.xyz_to_point(
+            data.get("xStartL", 0.0), data.get("yStartL", 0.0), data.get("zStartL", 0.0)
+        )
+        start_r = self.xyz_to_point(
+            data.get("xStartR", 0.0), data.get("yStartR", 0.0), data.get("zStartR", 0.0)
+        )
+
+        drivability = data.get("drivability", 0.0)
+        speed_limit = data.get("speedLimit", 0.0)
+        flag1way = data.get("flag1way", 0.0)
+
+        # Log critical fields
+        # rospy.loginfo(f"dist2_cl: {dist2_cl}, dist2_left: {dist2_left}, dist2_right: {dist2_right}")
+        # rospy.loginfo(f"half_width: {half_width}, road_radius: {road_radius}, heading_angle: {heading_angle}")
+
+        # Build and return the message
+        msg = bng_msgs.RoadsSensor(
+            header=std_msgs.msg.Header(
+                stamp=self.current_time,
+                frame_id=self.frame_Roads_sensor
+            ),
+            dist2_cl=dist2_cl,
+            dist2_left=dist2_left,
+            dist2_right=dist2_right,
+            half_width=half_width,
+            road_radius=road_radius,
+            heading_angle=heading_angle,
+            p0_on_cl=p0_on_cl,
+            p1_on_cl=p1_on_cl,
+            p2_on_cl=p2_on_cl,
+            p3_on_cl=p3_on_cl,
+            u_cl=u_cl,
+            v_cl=v_cl,
+            u_left_re=u_left_re,
+            v_left_re=v_left_re,
+            u_right_re=u_right_re,
+            v_right_re=v_right_re,
+            start_cl=start_cl,
+            start_l=start_l,
+            start_r=start_r,
+            drivability=drivability,
+            speed_limit=speed_limit,
+            flag1way=flag1way
+        )
+
+        return msg
+
+
+
+
+class IdealRadarPublisher(SensorDataPublisher):
+    def __init__(self, sensor, topic_id, vehicle):
+        super().__init__(sensor, topic_id, bng_msgs.IdealRadarSensor)
+        self.listener = tf.TransformListener()
+        sensor_name = topic_id.split("/")[-1]
+        self.frame_IdealRadar_sensor = f'{vehicle.vid}_{sensor_name}'
+        self.current_time = rospy.get_rostime()
+
+    def xyz_to_vec3(self, x: float, y: float, z: float) -> geom_msgs.Vector3:
+        return geom_msgs.Vector3(x=x, y=y, z=z)
+
+    def _vehicle_to_msg(self, veh: Dict[str, Any]) -> bng_msgs.IdealRadarSensorVehicle:
+        # Use default value (Vector3 with zero velocity) if 'vel' key is missing
+        vel = self.xyz_to_vec3(**veh.get("vel", {"x": 0, "y": 0, "z": 0}))
+        
+        return bng_msgs.IdealRadarSensorVehicle(
+            vehicle_id=int(veh["vehicleID"]),
+            dist_to_player_vehicle_sq=veh["distToPlayerVehicleSq"],
+            width=veh["width"],
+            length=veh["length"],
+            acc=self.xyz_to_vec3(**veh.get("acc", {"x": 0, "y": 0, "z": 0})),
+            vel=vel,
+            rel_acc_x=veh.get("relAccX", 0),
+            rel_acc_y=veh.get("relAccY", 0),
+            rel_dist_x=veh.get("relDistX", 0),
+            rel_dist_y=veh.get("relDistY", 0),
+            rel_vel_x=veh.get("relVelX", 0),
+            rel_vel_y=veh.get("relVelY", 0),
+        )
+
+
+    def _make_msg(self):
+        data = self._sensor.poll()
+        if 0.0 in data:  # bulk data
+            data = data[0.0]
+        msg = bng_msgs.IdealRadarSensor(
+            header=std_msgs.msg.Header(
+                stamp=self.current_time,
+                frame_id=self.frame_IdealRadar_sensor
+            ),
+            closest_vehicles1=self._vehicle_to_msg(data["closestVehicles1"]),
+            closest_vehicles2=self._vehicle_to_msg(data["closestVehicles2"]),
+            closest_vehicles3=self._vehicle_to_msg(data["closestVehicles3"]),
+            closest_vehicles4=self._vehicle_to_msg(data["closestVehicles4"]),
+        )
+        return msg
+
+
+
+class PowertrainSensorPublisher(SensorDataPublisher):
+    """
+    Powertrain sensor publisher publishing :external+beamng_msgs:doc:`interfaces/msg/PowertrainSensor` messages.
+
+    Args:
+        name: Name of the sensor.
+        config: Arguments of the sensor passed to the BeamNGpy class.
+    """
+
+    def __init__(self, sensor, topic_id, vehicle):
+        super().__init__(sensor, topic_id, bng_msgs.PowertrainSensor)
+        self.listener = tf.TransformListener()
+        sensor_name = topic_id.split("/")[-1]
+        self.frame_Powertrain_sensor = f'{vehicle.vid}_{sensor_name}'
+        self.current_time = rospy.get_rostime()
+
+
+    @staticmethod
+    def _device_to_msg(
+        name: str, device: Dict[str, Any]) -> bng_msgs.PowertrainSensorDevice:
+        if isinstance(device, dict):
+            return bng_msgs.PowertrainSensorDevice(
+                name=name,
+                input_av=device["inputAV"],
+                gear_ratio=device.get("gearRatio", float("nan")),
+                is_broken=device.get("isBroken", False),
+                mode=device.get("mode", ""),
+                parent_name=device.get("parentName", ""),
+                parent_output_index=int(device.get("parentOutputIndex", -1)),
+                output_torque_1=device.get("outputTorque1", float("nan")),
+                output_av_1=device.get("outputAV1", float("nan")),
+                output_torque_2=device.get("outputTorque2", float("nan")),
+                output_av_2=device.get("outputAV2", float("nan")),
+            )
+        else:
+            rospy.logwarn(f"Expected dict for device, got {type(device)}: {device}")
+            return bng_msgs.PowertrainSensorDevice(
+                name=name,
+                input_av=float("nan"),
+                gear_ratio=float("nan"),
+                is_broken=False,
+                mode="",
+                parent_name="",
+                parent_output_index=-1,
+                output_torque_1=float("nan"),
+                output_av_1=float("nan"),
+                output_torque_2=float("nan"),
+                output_av_2=float("nan"),
+            )
+
+
+    def _make_msg(self):
+        data = self._sensor.poll()
+        if 0.0 in data:  # bulk data
+            data = data[0.0]
+        msg = bng_msgs.PowertrainSensor(
+        header=std_msgs.msg.Header(
+            stamp=self.current_time,
+            frame_id=self.frame_Powertrain_sensor
+        ),
+        devices=[
+            self._device_to_msg(name, device) for name, device in data.items()
+                 ],
+        )
+        return msg
+
+class MeshPublisher(SensorDataPublisher):
+    def __init__(self, sensor, topic_id, vehicle):
+        super().__init__(sensor, topic_id, bng_msgs.MeshSensor)  # Correct message type
+        self.listener = tf.TransformListener()
+        sensor_name = topic_id.split("/")[-1]
+        self.frame_Mesh_sensor = f'{vehicle.vid}_{sensor_name}'
+        self.current_time = rospy.get_rostime()
+    
+    def xyz_to_point(self, x: float, y: float, z: float) -> geom_msgs.Point:
+        return geom_msgs.Point(x=x, y=y, z=z)
+
+    def xyz_to_vec3(self, x: float, y: float, z: float) -> geom_msgs.Vector3:
+        return geom_msgs.Vector3(x=x, y=y, z=z)
+        
+    @staticmethod
+    def _beam_to_msg(beam: Dict[str, Any]) -> bng_msgs.MeshSensorBeam:
+        return bng_msgs.MeshSensorBeam(stress=beam["stress"])
+
+    def _node_to_msg(self, node: Dict[str, Any]) -> bng_msgs.MeshSensorNode:
+        return bng_msgs.MeshSensorNode(
+            part_origin=node.get("partOrigin", ""),
+            mass=node["mass"],
+            pos=self.xyz_to_point(**node["pos"]),
+            vel=self.xyz_to_vec3(**node["vel"]),
+            force=self.xyz_to_vec3(**node["force"]),
+        )
+
+    def _make_msg(self):
+        data = self._sensor.poll()
+        msg = bng_msgs.MeshSensor(
+            header=std_msgs.msg.Header(
+                stamp=self.current_time,  # Correct header with timestamp
+                frame_id=self.frame_Mesh_sensor
+            ),
+            beams=[
+                self._beam_to_msg(data["beams"][i])
+                for i in range(len(data["beams"]))
+            ],
+            nodes=[
+                self._node_to_msg(data["nodes"][i])
+                for i in range(len(data["nodes"]))
+            ],
+        )
+        return msg
+
+class GPSPublisher(SensorDataPublisher):
+    def __init__(self, sensor, topic_id, vehicle):
+        super().__init__(sensor, topic_id, NavSatFix)  
+        self.listener = tf.TransformListener()
+        sensor_name = topic_id.split("/")[-1]
+        self.frame_Gps_sensor = f'{vehicle.vid}_{sensor_name}'
+        self.current_time = rospy.get_rostime()
+
+    def _make_msg(self):
+        data = self._sensor.poll()
+        if 0.0 in data:
+            data = data[0.0]
+        # Ensure the message type matches what the publisher expects
+        msg = NavSatFix(
+            header=std_msgs.msg.Header(
+                stamp=self.current_time,  # Correct header with timestamp
+                frame_id=self.frame_Gps_sensor
+            ),
+            status=NavSatStatus(
+                status=NavSatStatus.STATUS_FIX,  
+                service=NavSatStatus.SERVICE_GPS
+            ),
+            latitude=data["lat"],
+            longitude=data["lon"],
+            position_covariance_type=NavSatFix.COVARIANCE_TYPE_UNKNOWN,
+        )
+        return msg
 
 
 class StatePublisher(SensorDataPublisher):
@@ -155,26 +611,6 @@ class GForcePublisher(SensorDataPublisher):
         msg.gy2 = data['gy2']
         msg.gz2 = data['gz2']
         return msg
-
-
-class IMUPublisher(SensorDataPublisher):
-
-    def __init__(self, sensor, topic_id):
-        super().__init__(sensor,
-                         topic_id,
-                         sensor_msgs.msg.Imu)
-
-    def _make_msg(self):
-        data = self._sensor.data
-        msg = sensor_msgs.msg.Imu()
-        msg.orientation = geom_msgs.Quaternion(0, 0, 0, 0)
-        msg.orientation_covariance = [-1, ] * 9
-        msg.angular_velocity = geom_msgs.Vector3(*[data[x] for x in ['aX', 'aY', 'aZ']])
-        msg.angular_velocity_covariance = [-1, ] * 9
-        msg.linear_acceleration = geom_msgs.Vector3(*[data[x] for x in ['gX', 'gY', 'gZ']])
-        msg.linear_acceleration_covariance = [-1, ] * 9
-        return msg
-
 
 
 class ElectricsPublisher(SensorDataPublisher):
@@ -330,7 +766,7 @@ class ColorImgPublisher(CameraDataPublisher):
     def __init__(self, sensor, topic_id, cv_helper, data_descriptor):
         super().__init__(sensor,
                          topic_id,
-                         sensor_msgs.msg.Image)
+                         Image)
         self._cv_helper = cv_helper
         self._data_descriptor = data_descriptor
 
@@ -353,7 +789,7 @@ class DepthImgPublisher(CameraDataPublisher):
     def __init__(self, sensor, topic_id, cv_helper):
         super().__init__(sensor,
                          topic_id,
-                         sensor_msgs.msg.Image)
+                         Image)
         self._cv_helper = cv_helper
 
     def _make_msg(self, data):
@@ -373,7 +809,7 @@ class BBoxImgPublisher(CameraDataPublisher):
     def __init__(self, sensor, topic_id, cv_helper, vehicle):
         super().__init__(sensor,
                          topic_id,
-                         sensor_msgs.msg.Image)
+                         Image)
         self._cv_helper = cv_helper
         self._vehicle = vehicle
         self._classes = None
@@ -453,17 +889,12 @@ class CameraPublisher(BNGPublisher):
             pub.current_time = current_time
             pub.publish(current_time, data)
 
-    # def __init__(self, sensor, topic_id):
-        # super().__init__(sensor,
-        #                  topic_id,
-        #                  bng_msgs.USSensor)
 class UltrasonicPublisher(SensorDataPublisher):
     def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, Range)
         self.listener = tf.TransformListener()
         sensor_name = topic_id.split("/")[-1]
         self.frame_USSensor_sensor = f'{vehicle.vid}_{sensor_name}'
-        # self.frame_USSensor_sensor = 'ultrasonic_link'
         self.current_time = rospy.get_rostime()
 
     def _make_msg(self):      
@@ -479,9 +910,7 @@ class UltrasonicPublisher(SensorDataPublisher):
         USSensor_msg.max_range = 5.0
         # USSensor_msg.max_range = 9999.900390625
         USSensor_msg.range =  data['distance']
-        
-        # rospy.logdebug(f' USSensor_msg {USSensor_msg}')
-        # rospy.logdebug(f' USSensor_msg data {data}')
+
 
         try:
             (trans_map, _) = self.listener.lookupTransform(self.frame_map, self.frame_USSensor_sensor, USSensor_msg.header.stamp)
@@ -489,55 +918,75 @@ class UltrasonicPublisher(SensorDataPublisher):
             rospy.logwarn(f'No transform between {self.frame_map} and '
                           f'{self.frame_USSensor_sensor} available with exception: {e}')
             
-        # msg = bng_msgs.USSensor()
-        # msg.distance = data['distance']
-        # return msg
+
         return USSensor_msg
 
 
-# class AdvancedIMUPublisher:
 class AdvancedIMUPublisher(SensorDataPublisher):
     def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, Imu)
         self.listener = tf.TransformListener()
         sensor_name = topic_id.split("/")[-1]
         self.frame_ImuSensor_sensor = f'{vehicle.vid}_{sensor_name}'
-        # self.frame_ImuSensor_sensor = 'ultrasonic_link'
         self.current_time = rospy.get_rostime()
 
-    def _make_msg(self):      
+
+    def _make_msg(self):
         data = self._sensor.poll()
-        # print("--------------")
-        # print("data", data)
-        # print("------------")
-        imu_msg = Imu()
-        imu_msg.header.stamp = self.current_time
-        imu_msg.header.frame_id = 'advanced_imu_sensor'
 
-        imu_msg.orientation.x = data[1]['dirX'][0]
-        imu_msg.orientation.y = data[1]['dirY'][1]
-        imu_msg.orientation.z = data[1]['dirZ'][2]
-        # imu_msg.orientation.w = 1  # Assuming orientation in the format (x, y, z, w)
+        # Debugging to check the returned data
+        # rospy.logdebug(f"Sensor data: {data}")
 
-        imu_msg.angular_velocity.x = data[1]['angVel'][0]
-        imu_msg.angular_velocity.y = data[1]['angVel'][1]
-        imu_msg.angular_velocity.z = data[1]['angVel'][2]
+        # Ensure data is not None and is in the expected format
+        if data is None or len(data) < 2:
+            rospy.logerr("Invalid sensor data. Skipping IMU message publication.")
+            return None
 
-        imu_msg.linear_acceleration.x = data[1]['accRaw'][0]
-        imu_msg.linear_acceleration.y = data[1]['accRaw'][1]
-        imu_msg.linear_acceleration.z = data[1]['accRaw'][2]
+        try:
+            imu_msg = Imu()
+            imu_msg.header.stamp = self.current_time
+            imu_msg.header.frame_id = 'advanced_imu_sensor'  # Can change to desired frame id
 
-        return imu_msg
+            # Orientation quaternion (make sure it's a full quaternion [x, y, z, w])
+            imu_msg.orientation.x = data[1]['dirX'][0]
+            imu_msg.orientation.y = data[1]['dirY'][1]
+            imu_msg.orientation.z = data[1]['dirZ'][2]
+            imu_msg.orientation.w = 1.0  # Set `w` component (assumed to be normalized)
 
-# WIP
+            # Angular velocity
+            imu_msg.angular_velocity.x = data[1]['angVel'][0]
+            imu_msg.angular_velocity.y = data[1]['angVel'][1]
+            imu_msg.angular_velocity.z = data[1]['angVel'][2]
+
+            # Linear acceleration
+            imu_msg.linear_acceleration.x = data[1]['accRaw'][0]
+            imu_msg.linear_acceleration.y = data[1]['accRaw'][1]
+            imu_msg.linear_acceleration.z = data[1]['accRaw'][2]
+
+            # Optionally, you can also assign covariance matrices if applicable
+            imu_msg.orientation_covariance = np.zeros(9)
+            imu_msg.angular_velocity_covariance = np.zeros(9)
+            imu_msg.linear_acceleration_covariance = np.zeros(9)
+
+            return imu_msg
+
+        except KeyError as e:
+            rospy.logerr(f"KeyError encountered: {e}")
+            return None
+        except IndexError as e:
+            rospy.logerr(f"IndexError encountered: {e}")
+            return None
+
 class LidarPublisher(SensorDataPublisher):
 
     def __init__(self, sensor, topic_id, vehicle):
-        super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
+        super().__init__(sensor, topic_id, PointCloud2)
         self.listener = tf.TransformListener()
-        # self.frame_lidar_sensor = 'lidar_link'
         sensor_name = topic_id.split("/")[-1]
         self.frame_lidar_sensor = f'{vehicle.vid}_{sensor_name}'
+
+
+
 
     def _make_msg(self):
         header = std_msgs.msg.Header()
@@ -550,19 +999,21 @@ class LidarPublisher(SensorDataPublisher):
         num_points = points.shape[0]
         colours = colours[:num_points]
 
+        # Extract intensity
+        intensities = colours[:, 0] if colours.size > 0 else np.zeros((num_points,))
 
         pointcloud_fields = [('x', np.float32),
-                             ('y', np.float32),
-                             ('z', np.float32),
-                             ('intensity', np.float32)]
+                            ('y', np.float32),
+                            ('z', np.float32),
+                            ('intensity', np.float32)]
 
         try:
             (trans_map, rot_map) = self.listener.lookupTransform(self.frame_map, self.frame_lidar_sensor, header.stamp)
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
             rospy.logwarn(f'No transform between {self.frame_map} and '
-                          f'{self.frame_lidar_sensor} available with exception: {e}')
+                        f'{self.frame_lidar_sensor} available with exception: {e}')
             points = np.zeros((0, 3))
-            colours = np.zeros((0,))
+            intensities = np.zeros((0,))  # Change here
             trans_map = np.zeros(3)
             rot_map = tf_transformations.quaternion_from_euler(0, 0, 0)  # Identity rotation
 
@@ -574,61 +1025,13 @@ class LidarPublisher(SensorDataPublisher):
         pointcloud_data['x'] = rotated_points[:, 0]
         pointcloud_data['y'] = rotated_points[:, 1]
         pointcloud_data['z'] = rotated_points[:, 2]
-        pointcloud_data['intensity'] = np.array(colours)
+        pointcloud_data['intensity'] = intensities
+
         msg = ros_numpy.msgify(PointCloud2, pointcloud_data)
         msg.header = header
         return msg
 
 
-# ori
-# class LidarPublisher(SensorDataPublisher):
-
-#     def __init__(self, sensor, topic_id, vehicle):
-#         super().__init__(sensor, topic_id, sensor_msgs.msg.PointCloud2)
-#         self.listener = tf.TransformListener()
-#         # self.frame_lidar_sensor = 'lidar_link'
-#         sensor_name = topic_id.split("/")[-1]
-#         self.frame_lidar_sensor = f'{vehicle.vid}_{sensor_name}'
-
-#     def _make_msg(self):
-#         header = std_msgs.msg.Header()
-#         header.frame_id = self.frame_lidar_sensor
-#         header.stamp = self.current_time
-
-#         readings_data = self._sensor.poll()
-#         points = np.array(readings_data['pointCloud'])
-#         colours = readings_data['colours']
-
-#         pointcloud_fields = [('x', np.float32),
-#                              ('y', np.float32),
-#                              ('z', np.float32),
-#                              ('intensity', np.float32)]
-
-#         try:
-#             (trans_map, rot_map) = self.listener.lookupTransform(self.frame_map, self.frame_lidar_sensor, header.stamp)
-#         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-#             rospy.logwarn(f'No transform between {self.frame_map} and '
-#                           f'{self.frame_lidar_sensor} available with exception: {e}')
-#             points = np.zeros((0, 3))
-#             colours = np.zeros((0,))
-#             trans_map = np.zeros(3)
-#             rot_map = tf_transformations.quaternion_from_euler(0, 0, 0)  # Identity rotation
-
-#         # Apply the transformation to the point cloud data
-#         rotation_matrix = tf_transformations.quaternion_matrix(rot_map)[:3, :3]
-#         rotated_points = np.dot(points - trans_map, rotation_matrix.T)
-
-#         pointcloud_data = np.zeros(rotated_points.shape[0], dtype=pointcloud_fields)
-#         pointcloud_data['x'] = rotated_points[:, 0]
-#         pointcloud_data['y'] = rotated_points[:, 1]
-#         pointcloud_data['z'] = rotated_points[:, 2]
-#         pointcloud_data['intensity'] = np.array(colours)
-#         msg = ros_numpy.msgify(PointCloud2, pointcloud_data)
-#         msg.header = header
-#         return msg
-
-
-#ori
 class VehiclePublisher(BNGPublisher):
 
     def __init__(self, vehicle,
@@ -997,5 +1400,25 @@ class NetworkPublisherL(BNGPublisher):
         if self._road_network is None:
             self.set_up_road_network_viz()
         self._pub.publish(self._road_network.markers)
+
+
+#Deprecated 
+# class IMUPublisher(SensorDataPublisher):
+
+#     def __init__(self, sensor, topic_id):
+#         super().__init__(sensor,
+#                          topic_id,
+#                          sensor_msgs.msg.Imu)
+
+#     def _make_msg(self):
+#         data = self._sensor.data
+#         msg = sensor_msgs.msg.Imu()
+#         msg.orientation = geom_msgs.Quaternion(0, 0, 0, 0)
+#         msg.orientation_covariance = [-1, ] * 9
+#         msg.angular_velocity = geom_msgs.Vector3(*[data[x] for x in ['aX', 'aY', 'aZ']])
+#         msg.angular_velocity_covariance = [-1, ] * 9
+#         msg.linear_acceleration = geom_msgs.Vector3(*[data[x] for x in ['gX', 'gY', 'gZ']])
+#         msg.linear_acceleration_covariance = [-1, ] * 9
+#         return msg
 
 

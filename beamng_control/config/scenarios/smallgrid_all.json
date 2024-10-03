@@ -55,13 +55,10 @@
           "rotation":[1.0, -1.0, 0.1]
         },
         {
-          "name": "advance_imu",
-          "type": "AdvancedIMU",
-          "gfx_update_time": 0.0,
-          "physics_update_time": 0.01,
+          "name": "advanced_imu0",
+          "type": "AdvancedIMU.default",
           "position": [0.5, 0.0, 1.0],
-          "rotation": [0, -1, 0],
-          "is_visualised": true
+          "rotation": [0, -1, 0]
         }
       ]
     }

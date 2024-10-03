@@ -18,7 +18,6 @@ from tf.transformations import quaternion_from_euler, quaternion_multiply
 import geometry_msgs.msg
 
 import beamngpy as bngpy
-# import beamngpy.ai as bngai
 
 # ROS-BeamNGpy custome message 
 import beamng_msgs.msg as bng_msgs
@@ -29,7 +28,7 @@ from beamng_control.sensorHelper import get_sensors_classical, get_sensors_autom
 
 
 
-MIN_BNG_VERSION_REQUIRED = '0.31.0'
+MIN_BNG_VERSION_REQUIRED = '0.32.0'
 NODE_NAME = 'beamng_control'
 
 
@@ -392,22 +391,7 @@ class BeamNGBridge(object):
         rospy.loginfo(f'vehicles "{vehicles}".')
         response=True
         return response
-
-# # TODO: add vehicle.vid
-#     def get_current_vehicles(self, req):
-#         response = bng_srv.GetCurrentVehiclesInfoResponse()
-#         vehicles = list()
-#         list_of_current_vehicles = self.game_client.get_current_vehicles_info()
-#         rospy.loginfo(f'Started scenario "{list_of_current_vehicles}".')
-#         for veh in list_of_current_vehicles.values():
-#             veh_inf = bng_msgs.VehicleInfo()
-#             veh_inf.vehicle_id = veh['name']
-#             veh_inf.model = veh['model']
-#             # veh_inf.vid = veh['id']
-#             vehicles.append(veh_inf)
-#         response.vehicles = vehicles
-#         return response
-    
+ 
 
 
     def teleport_vehicle(self, req):

@@ -1,5 +1,6 @@
 <launch>
 
+
     <!-- Loading BeamNG-ROS bridge -->
     <include file="$(find beamng_control)/launch/control.launch" />
 

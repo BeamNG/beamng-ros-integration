@@ -8,13 +8,14 @@
     {
       "name": "ego_vehicle",
       "model": "etk800",
-      "position": [568.908, 13.422,  148.565],
+      "position": [56.977, 49.188, 119.608],
       "rotation": [0, 0, 0, 1],
-      "sensors_classical": [
+      "sensors_automation": [
         {
-          "name": "position_imu",
-          "type": "IMU",
-          "position": [0.73, 0.51, 0.8]
+          "name": "GPS0",
+          "type":"GPS",
+          "rotation": [0, -1, 0],
+          "position":[0, 0, 1.7]
         }
       ]
     }

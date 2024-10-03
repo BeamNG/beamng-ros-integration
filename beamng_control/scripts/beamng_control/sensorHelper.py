@@ -2,7 +2,7 @@ import rospy
 import copy
 
 import beamngpy.sensors as bng_sensors
-from beamng_control.publishers import LidarPublisher, CameraPublisher, UltrasonicPublisher, AdvancedIMUPublisher
+from beamng_control.publishers import LidarPublisher, CameraPublisher, UltrasonicPublisher, AdvancedIMUPublisher, GPSPublisher, MeshPublisher, IdealRadarPublisher, PowertrainSensorPublisher, RadarPublisher, RoadsSensorPublisher
 
 
 # from beamngpy.noise import RandomImageNoise, RandomLIDARNoise
@@ -100,6 +100,120 @@ def get_advanced_imu(bng,
         raise SensorSpecificationError(f'Could not get AdvancedIMU instance. '
                                        f'Original error message:\n{e}')
     return AdImu
+
+
+
+def get_gps(bng,
+            name,
+            vehicle,
+            position,
+            rotation,
+            **spec):
+    if 'rotation' in spec:
+        spec=spec.pop('rotation')
+        rospy.loginfo('GPS sensor has no rotation')
+    try:
+        Gps = bng_sensors.GPS(bng=bng,
+                                name=name,
+                                vehicle=vehicle,
+                                pos=position)
+    except TypeError as e:
+        raise SensorSpecificationError(f'Could not get GPS instance. '
+                                       f'Original error message:\n{e}')
+    return Gps
+
+def get_ideal_radar(bng,
+                    name,
+                    vehicle,
+                    position,
+                    rotation,
+                    **spec):
+    # if 'rotation' or 'position' in spec:
+    #     spec=spec.pop('rotation')
+    #     spec=spec.pop('position')
+    #     rospy.loginfo('IdealRadar sensor has no position nor rotation')
+    try:
+        ideal_radar = bng_sensors.IdealRadar(bng=bng,
+                                name=name,
+                                vehicle=vehicle)
+    except TypeError as e:
+        raise SensorSpecificationError(f'Could not get Idealradar instance. '
+                                       f'Original error message:\n{e}')
+    return ideal_radar
+
+
+def get_radar(bng,
+                name,
+                vehicle,
+                position,
+                rotation,
+                **spec):
+    # if 'rotation' or 'position' in spec:
+    #     spec=spec.pop('rotation')
+    #     spec=spec.pop('position')
+    #     rospy.loginfo('IdealRadar sensor has no position nor rotation')
+    try:
+        radar = bng_sensors.Radar(bng=bng,
+                                name=name,
+                                vehicle=vehicle)
+    except TypeError as e:
+        raise SensorSpecificationError(f'Could not get Radar instance. '
+                                       f'Original error message:\n{e}')
+    return radar
+
+def get_roads_sensor(bng, name, vehicle, position, **spec):
+    if 'rotation' in spec:
+        spec.pop('rotation')
+        rospy.loginfo('RoadsSensor sensor has no rotation')
+    if 'position' in spec:
+        spec.pop('position')
+        rospy.loginfo('RoadsSensor sensor has no position')
+    try:
+        roads_sensor = bng_sensors.RoadsSensor(bng=bng, name=name, vehicle=vehicle)
+    except TypeError as e:
+        raise SensorSpecificationError(f'Could not get Roads Sensor instance. '
+                                       f'Original error message:\n{e}')
+    return roads_sensor
+
+
+def get_power_train(bng,
+                    name,
+                    vehicle,
+                    position,
+                    rotation,
+                    **spec):
+    # if 'rotation' or 'position' in spec:
+    #     spec=spec.pop('rotation')
+    #     spec=spec.pop('position')
+    #     rospy.loginfo('IdealRadar sensor has no position nor rotation')
+    try:
+        Power_train_sensor = bng_sensors.PowertrainSensor(bng=bng,
+                                                    name=name,
+                                                    vehicle=vehicle)
+    except TypeError as e:
+        raise SensorSpecificationError(f'Could not get Powertrain Sensor instance. '
+                                       f'Original error message:\n{e}')
+    return Power_train_sensor
+
+def get_mesh(bng,
+            name,
+            vehicle,
+            position,
+            rotation,
+            **spec):
+    # if 'rotation' or 'position' in spec:
+    #     spec=spec.pop('rotation')
+    #     spec=spec.pop('position')
+    #     rospy.loginfo('mesh sensor has no position nor rotation')
+    try:
+        mesh = bng_sensors.Mesh(bng=bng,
+                                name=name,
+                                vehicle=vehicle,
+                                **spec)
+    except TypeError as e:
+        raise SensorSpecificationError(f'Could not get GPS instance. '
+                                       f'Original error message:\n{e}')
+    return mesh
 
 
 
@@ -265,20 +379,29 @@ def get_sensors_automation(sensor_type, all_sensor_defs, bng=None, vehicle=None,
     return sensor, sensor_publisher
 
 _automation_sensors = ['Camera',
-                   'Lidar',
-                   'CameraNoise',
-                   'LidarNoise',
-                   'AdvancedIMU',  
-                   'Ultrasonic',
-                   'PowerTrain',  # unsure about this one
-                   'Radar',  # unsure about this one
-                   'meshsensor',  # unsure about this one
-                  ]
+                        'Lidar',
+                        # 'CameraNoise',
+                        # 'LidarNoise',
+                        'AdvancedIMU',  
+                        'GPS',  
+                        'Ultrasonic',
+                        'IdealRadar',
+                        'Radar', 
+                        'RoadsSensor', 
+                        'PowertrainSensor',  
+                        'Mesh'
+                        ]
 _sensor_automation_type_publisher_getter = {
     'Lidar': LidarPublisher,
     'Camera': CameraPublisher,
     'Ultrasonic': UltrasonicPublisher,
-    'AdvancedIMU': AdvancedIMUPublisher
+    'AdvancedIMU': AdvancedIMUPublisher,
+    'GPS': GPSPublisher,
+    'IdealRadar': IdealRadarPublisher,
+    'Radar': RadarPublisher,
+    'RoadsSensor': RoadsSensorPublisher,
+    'PowertrainSensor': PowertrainSensorPublisher,
+    'Mesh': MeshPublisher
 }
 
 _sensor_getters = {
@@ -286,14 +409,18 @@ _sensor_getters = {
     'Timer': bng_sensors.Timer,
     'GForces': bng_sensors.GForces,
     'Electrics': bng_sensors.Electrics,
-    'IMU': get_imu,
-    
+    'Lidar': get_lidar,
     'Camera': get_camera,
     'Ultrasonic': get_ultrasonic,
-    'Lidar': get_lidar,
-    'AdvancedIMU': get_advanced_imu
+    'AdvancedIMU': get_advanced_imu,
+    'GPS': get_gps,
+    'IdealRadar': get_ideal_radar,
+    'Radar': get_radar,
+    'RoadsSensor': get_roads_sensor,
+    'PowertrainSensor': get_power_train,
+    'Mesh': get_mesh
     
-    # 'Ultrasonic': bng_sensors.Ultrasonic,
+    # 'IMU': bng_sensors.imu,
     # 'CameraNoise': get_camera_noise_sensor,
     # 'LidarNoise': get_lidar_noise_sensor
 }
