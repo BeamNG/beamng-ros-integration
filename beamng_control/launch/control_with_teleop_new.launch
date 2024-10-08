@@ -1,0 +1,8 @@
+<launch>
+  <!-- Set PYTHONPATH for ROS nodes -->
+  <env name="PYTHONPATH" value="/home/ubuntu20/catkin_ws/devel/lib/python3/dist-packages:/opt/ros/noetic/lib/python3/dist-packages" />
+  
+  <node pkg="beamng_teleop_keyboard" type="converter" name="twist_message_converter" output="screen" />
+  <node pkg="beamng_teleop_keyboard" type="teleop_key" name="teleop_node" output="screen" />
+  <node pkg="beamng_control" type="bridge.py" name="beamng_control" output="screen" />
+</launch>

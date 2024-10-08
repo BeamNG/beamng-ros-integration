@@ -7,7 +7,9 @@ from std_msgs.msg import String
 import subprocess
 import os
 import beamngpy as bngpy
+import sys
 from beamng_msgs.msg import VehicleControl
+
 
 
 class twist2bng():

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 0.6
+===========
+- **New sensors**  Added support for new sensors : GPS, Roads sensor, Radar, Ideal radar, Mesh, Powertrain senso
+- **New scenarios**
+
 Version 0.5
 =========================
 - **LIDAR Modes:** This automated LiDAR sensor operates in three modes: Full 360 Degrees Mode for comprehensive, rapid updates around an 'up' vector; LFO Mode for low-frequency, directional readings; and Static Mode for fixed, angle-specific readings, with 360 mode and other settings customizable via flags.

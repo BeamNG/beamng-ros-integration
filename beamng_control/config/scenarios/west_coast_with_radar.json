@@ -1,7 +1,7 @@
 {
   "version": 0.1,
   "level": "west_coast_usa",
-  "name": "advanced_imu_scenario",
+  "name": "Radar",
   "mode": "None",
   "network_vizualization": "on",
   "vehicles": [
@@ -11,13 +11,14 @@
       "position": [56.977, 49.188, 119.608],
       "rotation": [0, 0, 0, 1],
       "sensors_automation": [
-        {
-          "name": "advanced_imu0",
-          "type": "AdvancedIMU.default",
-          "position": [0.5, 0.0, 1.0],
+         {
+          "name": "radar0",
+          "type":"Radar.default",
+          "position":[0, 0, 0],
           "rotation": [0, -1, 0]
         }
       ]
     }
   ]
 }
+

@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>beamng_control</name>
-  <version>0.0.0</version>
+  <version>0.6.0</version>
   <description>Package for BeamNG.tech integration via the BeamNGpy library.</description>
 
-  <author>Abdul Rahman Saeed</author>
+  <author>BeamNG GmbH</author>
   <maintainer email="tech@beamng.gmbh">BeamNG GmbH</maintainer>
 
   <license>MIT</license>

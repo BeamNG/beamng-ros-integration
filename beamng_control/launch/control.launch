@@ -1,6 +1,6 @@
 <launch>
     <!-- choose scenario-->
-    <arg name="scenario" default="west_coast_rviz_demo" 
+    <arg name="scenario" default="west_coast_with_radar" 
     doc="[
     empty,
     west_coast_with_electrics,
@@ -8,11 +8,13 @@
     GridMap_all,
     smallgrid_all,
     west_coast_with_two_ultrasonic,
+    utah_scenario_with_cam_lidar_and_imu, 
     west_coast_rviz_demo, 
     west_coast_with_all_sensors,
     west_coast_with_imu, 
-    utah_scenario_with_cam_lidar_and_imu, 
     west_coast_with_lidar
+    west_coast_with_radar
+    west_coast_with_idealradar
     utah_scenario_with_cam_and_lidar
     ]"/>
     <arg name="scenario_config" value="$(find beamng_control)/config/scenarios/$(arg scenario).json"/>

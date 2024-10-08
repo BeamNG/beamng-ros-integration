@@ -42,21 +42,95 @@
       "is_visualised": false,
       "is_streaming": false,
       "range_min_cutoff": 0.15,
-      "range_direct_max_cutoff": 5.0
+      "range_direct_max_cutoff": 1000.0
 
     }
   },
       "AdvancedIMU": {
-        "gfx_update_time": 0.0,
-        "physics_update_time": 0.01,
-        "accel_window_width": null,
-        "gyro_window_width": null,
-        "accel_frequency_cutoff": null,
-        "gyro_frequency_cutoff": null,
-        "is_send_immediately": false,
-        "is_using_gravity": false,
-        "is_visualised": true,
-        "is_snapping_desired": false,
-        "is_force_inside_triangle": false
-  }
+        "default": {
+          "gfx_update_time": 0.0,
+          "physics_update_time": 0.01,
+          "accel_window_width": null,
+          "gyro_window_width": null,
+          "accel_frequency_cutoff": null,
+          "gyro_frequency_cutoff": null,
+          "is_send_immediately": false,
+          "is_using_gravity": false,
+          "is_visualised": true,
+          "is_snapping_desired": false,
+          "is_force_inside_triangle": false
+        }
+    },
+    "GPS": {
+        "default": {
+            "gfx_update_time": 0.0,
+            "physics_update_time": 0.01,
+            "ref_lon": 0.0,
+            "ref_lat": 0.0,
+            "is_send_immediately": false,
+            "is_visualised": true,
+            "is_snapping_desired": false,
+            "is_force_inside_triangle": false,
+            "is_dir_world_space": false
+      }
+    },
+    "Mesh": {
+        "default": {
+          "gfx_update_time": 0.0,
+          "physics_update_time": 0.015,
+          "groups_list":[],
+          "is_track_beams": true
+      }
+    },
+    "IdealRadar": {
+        "default": {
+          "gfx_update_time": 0.0,
+          "physics_update_time": 0.01,
+          "is_send_immediately": false
+      }
+    },
+    "PowertrainSensor": {
+        "default": {
+          "gfx_update_time": 0.0,
+          "physics_update_time": 0.01,
+          "is_send_immediately": false
+      }
+    },
+    "Radar": {
+        "default": {
+          "requested_update_time": 0.1,
+          "update_priority": 0.0,
+          "range_bins": 200,
+          "azimuth_bins": 200,
+          "vel_bins": 200,
+          "range_min": 0.1,
+          "range_max": 100.0,
+          "vel_min": -50.0,
+          "vel_max": 50.0,
+          "half_angle_deg": 30.0,
+          "resolution": [200, 200],
+          "field_of_view_y": 70,
+          "near_far_planes": [0.1, 150.0],
+          "range_roundness": -2.0,
+          "range_cutoff_sensitivity": 0.0,
+          "range_shape": 0.23,
+          "range_focus": 0.12,
+          "range_min_cutoff": 0.5,
+          "range_direct_max_cutoff": 150.0,
+          "is_visualised": true,
+          "is_streaming": false,
+          "is_static": false,
+          "is_snapping_desired": false,
+          "is_force_inside_triangle": false,
+          "is_dir_world_space": false
+      }
+    },
+    "RoadsSensor": {
+        "default": {
+          "gfx_update_time": 0.0,
+          "physics_update_time": 0.01,
+          "is_send_immediately": false
+      }
+    }
+
 }

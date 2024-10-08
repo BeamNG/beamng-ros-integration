@@ -241,8 +241,7 @@ class BeamNGBridge(object):
         for v_spec in scenario_spec['vehicles']:
             # NOT USED IN NEW CODE
             vehicle = self.get_sensor_classical_from_dict(v_spec)
-
-            # self._publishers.append(VehiclePublisher(vehicle, NODE_NAME))  # todo markers need to be added somwhere else
+            # self._publishers.append(VehiclePublisher(vehicle, NODE_NAME))  # todo markers need to be added somewhere else
             
             # USED IN NEW CODE 
             # vehicle = self.get_sensor_classical_from_dict(v_spec, vehicle)
@@ -391,10 +390,7 @@ class BeamNGBridge(object):
         rospy.loginfo(f'vehicles "{vehicles}".')
         response=True
         return response
-
-# # TODO: add vehicle.vid
-
-    
+ 
 
 
     def teleport_vehicle(self, req):
