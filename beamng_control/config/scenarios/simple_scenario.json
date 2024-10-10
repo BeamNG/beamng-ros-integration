@@ -1,7 +1,7 @@
 {
   "version": 0.1,
-  "level": "simple_scenario",
-  "name": "test",
+  "level": "GridMap",
+  "name": "simple_scenario",
   "mode": "None",
   "vehicles": [
     {

@@ -1,7 +1,7 @@
 {
   "version": 0.1,
   "level": "GridMap",
-  "name": "test",
+  "name": "simple_scenario_no_sensors",
   "mode": "None",
   "vehicles": [
     {
