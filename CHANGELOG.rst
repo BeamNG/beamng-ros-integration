@@ -3,8 +3,9 @@ Changelog
 
 Version 0.6
 ===========
-- **New sensors**  Added support for new sensors : GPS, Roads sensor, Radar, Ideal radar, Mesh, Powertrain senso
-- **New scenarios**
+- **Support for new sensors** : GPS, Roads sensor, Radar sensor, Ideal radar sensor, Mesh sensor, and Powertrain sensor.
+- **New scenarios**.
+- **in-code documentations**
 
 Version 0.5
 =========================
