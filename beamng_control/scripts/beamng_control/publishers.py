@@ -1,4 +1,3 @@
-
 from abc import ABC, abstractmethod
 import rospy
 from rospy import Time
@@ -20,20 +19,29 @@ import tf.transformations as tf_transformations
 from tf.transformations import quaternion_from_euler, quaternion_multiply
 from tf import transformations as tf_trans 
 
-
 import beamng_msgs.msg as bng_msgs
 import beamngpy.sensors as bng_sensors
 import std_msgs.msg
 from sensor_msgs.msg import Range, Imu, NavSatFix, NavSatStatus, Image
 from sensor_msgs.point_cloud2 import PointCloud2
+
 try:
     import radar_msgs.msg as radar_msgs
-
     RADAR_MSGS_FOUND = True
 except ImportError as e:
     RADAR_MSGS_FOUND = False
 
+
 def get_sensor_publisher(sensor):
+    """
+    Identifies and returns the appropriate publisher for a given sensor type.
+    
+    Args:
+        sensor: The sensor instance to be matched with a publisher class.
+    
+    Returns:
+        A class that corresponds to the given sensor instance.
+    """
     sensor_mapping = {
         bng_sensors.State: StatePublisher,
         bng_sensors.Timer: TimerPublisher,
@@ -47,8 +55,6 @@ def get_sensor_publisher(sensor):
         bng_sensors.Mesh: MeshPublisher,
         bng_sensors.PowertrainSensor: PowertrainSensorPublisher,
         bng_sensors.GPS: GPSPublisher
-        
-        # bng_sensors.imu: IMUPublisher,
     }
     for k, v in sensor_mapping.items():
         if isinstance(sensor, k):
@@ -57,56 +63,71 @@ def get_sensor_publisher(sensor):
 
 
 class BNGPublisher(ABC):
+    """
+    Abstract base class for BeamNG publishers.
+
+    The publisher classes that inherit from this should implement the `publish` method
+    to define how the data will be published to the appropriate ROS topics.
+    """
 
     @abstractmethod
     def publish(self, current_time):
+        """
+        Abstract method for publishing data to a ROS topic.
+        
+        Args:
+            current_time: The current time for publishing, typically ROS time.
+        """
         pass
 
 
 class SensorDataPublisher(BNGPublisher):
+    """
+    Base class for sensor data publishers.
 
+    Args:
+        sensor: The sensor instance to poll data from.
+        topic_id: The ROS topic on which to publish the data.
+        msg_type: The message type that corresponds to the sensor.
+    """
     def __init__(self, sensor, topic_id, msg_type):
-        rospy.logdebug(f'publishing to {topic_id}')
+        rospy.logdebug(f'Publishing to {topic_id}')
         self._sensor = sensor
-        self._pub = rospy.Publisher(topic_id,
-                                    msg_type,
-                                    queue_size=1)
+        self._pub = rospy.Publisher(topic_id, msg_type, queue_size=1)
         self.current_time = rospy.get_rostime()
         self.frame_map = 'map'
 
     @abstractmethod
     def _make_msg(self):
+        """
+        Abstract method for creating a ROS message from sensor data.
+        Must be implemented by subclasses based on the specific sensor data format.
+        """
         pass
 
     def publish(self, current_time):
+        """
+        Publish the message created by `_make_msg` to the ROS topic.
+
+        Args:
+            current_time: The current time for publishing.
+        """
         self.current_time = current_time
         msg = self._make_msg()
         self._pub.publish(msg)
 
 
-
 class RadarPublisher(SensorDataPublisher):
     """
-    Radar sensor publisher publishing radar_msgs :radar_msgs:`RadarReturn` messages
-    if the library is found, custom :external+beamng_msgs:doc:`interfaces/msg/RadarReturn` messages if not.
-
-    You can force the publisher to always send custom BeamNG message type by setting the
-    ``use_beamng_msg_type=True`` argument in the sensor .json definition.
+    Publishes radar sensor data as `RadarScan` messages.
 
     Args:
-        name: Name of the sensor.
-        config: Arguments of the sensor passed to the BeamNGpy class.
+        sensor: The radar sensor to be polled.
+        topic_id: The ROS topic for publishing radar data.
+        vehicle: The vehicle object that the radar is attached to.
     """
 
     def __init__(self, sensor, topic_id, vehicle):
-        """
-        Initializes the RadarPublisher class.
-
-        Args:
-            sensor: The sensor instance being used to poll radar data.
-            topic_id: The ROS topic on which the radar data will be published.
-            vehicle: The vehicle object that the sensor is attached to.
-        """
         super().__init__(sensor, topic_id, bng_msgs.RadarScan)
         self.listener = tf.TransformListener()
         sensor_name = topic_id.split("/")[-1]
@@ -115,10 +136,14 @@ class RadarPublisher(SensorDataPublisher):
 
     def _convert_array_to_dict(self, data_array):
         """
-        Convert the NumPy array from the radar sensor into a dictionary.
-        Adjust the indices according to your sensor data structure.
+        Convert the radar sensor's NumPy data array to a dictionary for easier access.
+
+        Args:
+            data_array: NumPy array containing radar sensor data.
+        
+        Returns:
+            Dictionary mapping radar data fields to their values.
         """
-        # Example: Adjust these indices according to the actual data format
         return {
             "range": data_array[0],
             "doppler_velocity": data_array[1],
@@ -130,29 +155,26 @@ class RadarPublisher(SensorDataPublisher):
         }
 
     def _make_msg(self):
+        """
+        Converts radar sensor data into a ROS `RadarScan` message.
+        
+        Returns:
+            A ROS message of type `RadarScan` if data is available and valid, otherwise None.
+        """
         data = self._sensor.poll()
-
-        # Ensure data exists
         if data is None:
             rospy.logwarn("No data received from Radar sensor.")
             return None
 
-        # Handle the case where data is a NumPy array
         if isinstance(data, np.ndarray):
-            # Convert the ndarray to a dictionary format.
             data = self._convert_array_to_dict(data)
-        
-        # Check if the polled data is a dictionary
+
         if not isinstance(data, dict):
             rospy.logwarn(f"Unexpected data type received: {type(data)}")
             return None
 
-        # Log raw data for debugging
-        # rospy.loginfo(f"Raw data from Radar sensor: {data}")
-
-        # Extract data fields, ensuring they are floats
         try:
-            range_msg = float(data.get("range", 0.0)[0])  # Get the first value
+            range_msg = float(data.get("range", 0.0)[0])
             doppler_velocity_msg = float(data.get("doppler_velocity", 0.0)[0])
             azimuth_msg = float(data.get("azimuth", 0.0)[0])
             elevation_msg = float(data.get("elevation", 0.0)[0])
@@ -163,7 +185,6 @@ class RadarPublisher(SensorDataPublisher):
             rospy.logwarn(f"Error extracting data fields: {str(e)}")
             return None
 
-        # Create a RadarReturn message
         radar_return_msg = bng_msgs.RadarReturn(
             range=range_msg,
             doppler_velocity=doppler_velocity_msg,
@@ -174,32 +195,28 @@ class RadarPublisher(SensorDataPublisher):
             facing_factor=facing_factor_msg,
         )
 
-        # Ensure the frame ID is correctly set
         header = std_msgs.msg.Header(
             stamp=self.current_time,
-            frame_id=self.frame_Radar_sensor  # corrected variable name
+            frame_id=self.frame_Radar_sensor
         )
 
-        # Build and return the RadarScan message
         msg = bng_msgs.RadarScan(
             header=header,
-            returns=[radar_return_msg]  # wrap in a list
+            returns=[radar_return_msg]
         )
 
         return msg
 
-
-
-
-
 class RoadsSensorPublisher(SensorDataPublisher):
     """
-    Roads sensor publisher publishing :external+beamng_msgs:doc:`interfaces/msg/RoadsSensor` messages.
+    Publishes roads sensor data as `RoadsSensor` messages.
 
     Args:
-        name: Name of the sensor.
-        config: Arguments of the sensor passed to the BeamNGpy class.
+        sensor: The roads sensor to be polled.
+        topic_id: The ROS topic for publishing roads data.
+        vehicle: The vehicle object that the sensor is attached to.
     """
+
     def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, bng_msgs.RoadsSensor)
         self.listener = tf.TransformListener()
@@ -207,52 +224,68 @@ class RoadsSensorPublisher(SensorDataPublisher):
         self.frame_Roads_sensor = f'{vehicle.vid}_{sensor_name}'
         self.current_time = rospy.get_rostime()
 
-
-
     @staticmethod
-    def _make_cubic_polynomial(
-        a: float, b: float, c: float, d: float
-    ) -> bng_msgs.CubicPolynomial:
+    def _make_cubic_polynomial(a: float, b: float, c: float, d: float) -> bng_msgs.CubicPolynomial:
+        """
+        Helper method to create a cubic polynomial message.
+
+        Args:
+            a: Coefficient a of the polynomial.
+            b: Coefficient b of the polynomial.
+            c: Coefficient c of the polynomial.
+            d: Coefficient d of the polynomial.
+        
+        Returns:
+            A `CubicPolynomial` message.
+        """
         return bng_msgs.CubicPolynomial(a=a, b=b, c=c, d=d)
 
-
     def xyz_to_point(self, x: float, y: float, z: float) -> geom_msgs.Point:
+        """
+        Convert 3D coordinates into a ROS `Point`.
+
+        Args:
+            x: X-coordinate.
+            y: Y-coordinate.
+            z: Z-coordinate.
+        
+        Returns:
+            A `Point` message with the given coordinates.
+        """
         return geom_msgs.Point(x=x, y=y, z=z)
 
     def _make_msg(self):
+        """
+        Converts roads sensor data into a ROS `RoadsSensor` message.
+        
+        Returns:
+            A ROS message of type `RoadsSensor` if data is available and valid, otherwise None.
+        """
         data = self._sensor.poll()
 
-        # Ensure data exists and is in the expected format
         if not data:
             rospy.logwarn("No data received from RoadsSensor.")
             return None
 
-        # Check if the polled data is a dictionary
         if not isinstance(data, dict):
             rospy.logwarn(f"Unexpected data type received: {type(data)}")
             return None
 
-        # Log raw data for debugging
-        # rospy.loginfo(f"Raw data from RoadsSensor: {data}")
-
-        # Iterate through the data dictionary and handle invalid entries (like floats)
         valid_data = {}
         for key, value in data.items():
             if isinstance(value, dict):
                 valid_data[key] = value
             else:
                 rospy.logwarn(f"Invalid data entry for key {key}: Expected dict, got {type(value)}")
-        
-        # If no valid data is found, log and return
+
         if not valid_data:
             rospy.logwarn("No valid data entries found in RoadsSensor data.")
             return None
 
-        # Process the first valid entry (if data is valid)
         first_key = next(iter(valid_data))
         data = valid_data[first_key]
 
-        # Extract data fields
+        # Extract and convert road sensor data fields into a message
         dist2_cl = data.get("dist2CL", 0.0)
         dist2_left = data.get("dist2Left", 0.0)
         dist2_right = data.get("dist2Right", 0.0)
@@ -260,59 +293,28 @@ class RoadsSensorPublisher(SensorDataPublisher):
         road_radius = data.get("roadRadius", 0.0)
         heading_angle = data.get("headingAngle", 0.0)
 
-        p0_on_cl = self.xyz_to_point(
-            data.get("xP0onCL", 0.0), data.get("yP0onCL", 0.0), data.get("zP0onCL", 0.0)
-        )
-        p1_on_cl = self.xyz_to_point(
-            data.get("xP1onCL", 0.0), data.get("yP1onCL", 0.0), data.get("zP1onCL", 0.0)
-        )
-        p2_on_cl = self.xyz_to_point(
-            data.get("xP2onCL", 0.0), data.get("yP2onCL", 0.0), data.get("zP2onCL", 0.0)
-        )
-        p3_on_cl = self.xyz_to_point(
-            data.get("xP3onCL", 0.0), data.get("yP3onCL", 0.0), data.get("zP3onCL", 0.0)
-        )
+        p0_on_cl = self.xyz_to_point(data.get("xP0onCL", 0.0), data.get("yP0onCL", 0.0), data.get("zP0onCL", 0.0))
+        p1_on_cl = self.xyz_to_point(data.get("xP1onCL", 0.0), data.get("yP1onCL", 0.0), data.get("zP1onCL", 0.0))
+        p2_on_cl = self.xyz_to_point(data.get("xP2onCL", 0.0), data.get("yP2onCL", 0.0), data.get("zP2onCL", 0.0))
+        p3_on_cl = self.xyz_to_point(data.get("xP3onCL", 0.0), data.get("yP3onCL", 0.0), data.get("zP3onCL", 0.0))
 
-        u_cl = self._make_cubic_polynomial(
-            data.get("uAofCL", 0.0), data.get("uBofCL", 0.0), data.get("uCofCL", 0.0), data.get("uDofCL", 0.0)
-        )
-        v_cl = self._make_cubic_polynomial(
-            data.get("vAofCL", 0.0), data.get("vBofCL", 0.0), data.get("vCofCL", 0.0), data.get("vDofCL", 0.0)
-        )
+        u_cl = self._make_cubic_polynomial(data.get("uAofCL", 0.0), data.get("uBofCL", 0.0), data.get("uCofCL", 0.0), data.get("uDofCL", 0.0))
+        v_cl = self._make_cubic_polynomial(data.get("vAofCL", 0.0), data.get("vBofCL", 0.0), data.get("vCofCL", 0.0), data.get("vDofCL", 0.0))
 
-        u_left_re = self._make_cubic_polynomial(
-            data.get("uAofLeftRE", 0.0), data.get("uBofLeftRE", 0.0), data.get("uCofLeftRE", 0.0), data.get("uDofLeftRE", 0.0)
-        )
-        v_left_re = self._make_cubic_polynomial(
-            data.get("vAofLeftRE", 0.0), data.get("vBofLeftRE", 0.0), data.get("vCofLeftRE", 0.0), data.get("vDofLeftRE", 0.0)
-        )
+        u_left_re = self._make_cubic_polynomial(data.get("uAofLeftRE", 0.0), data.get("uBofLeftRE", 0.0), data.get("uCofLeftRE", 0.0), data.get("uDofLeftRE", 0.0))
+        v_left_re = self._make_cubic_polynomial(data.get("vAofLeftRE", 0.0), data.get("vBofLeftRE", 0.0), data.get("vCofLeftRE", 0.0), data.get("vDofLeftRE", 0.0))
 
-        u_right_re = self._make_cubic_polynomial(
-            data.get("uAofRightRE", 0.0), data.get("uBofRightRE", 0.0), data.get("uCofRightRE", 0.0), data.get("uDofRightRE", 0.0)
-        )
-        v_right_re = self._make_cubic_polynomial(
-            data.get("vAofRightRE", 0.0), data.get("vBofRightRE", 0.0), data.get("vCofRightRE", 0.0), data.get("vDofRightRE", 0.0)
-        )
+        u_right_re = self._make_cubic_polynomial(data.get("uAofRightRE", 0.0), data.get("uBofRightRE", 0.0), data.get("uCofRightRE", 0.0), data.get("uDofRightRE", 0.0))
+        v_right_re = self._make_cubic_polynomial(data.get("vAofRightRE", 0.0), data.get("vBofRightRE", 0.0), data.get("vCofRightRE", 0.0), data.get("vDofRightRE", 0.0))
 
-        start_cl = self.xyz_to_point(
-            data.get("xStartCL", 0.0), data.get("yStartCL", 0.0), data.get("zStartCL", 0.0)
-        )
-        start_l = self.xyz_to_point(
-            data.get("xStartL", 0.0), data.get("yStartL", 0.0), data.get("zStartL", 0.0)
-        )
-        start_r = self.xyz_to_point(
-            data.get("xStartR", 0.0), data.get("yStartR", 0.0), data.get("zStartR", 0.0)
-        )
+        start_cl = self.xyz_to_point(data.get("xStartCL", 0.0), data.get("yStartCL", 0.0), data.get("zStartCL", 0.0))
+        start_l = self.xyz_to_point(data.get("xStartL", 0.0), data.get("yStartL", 0.0), data.get("zStartL", 0.0))
+        start_r = self.xyz_to_point(data.get("xStartR", 0.0), data.get("yStartR", 0.0), data.get("zStartR", 0.0))
 
         drivability = data.get("drivability", 0.0)
         speed_limit = data.get("speedLimit", 0.0)
         flag1way = data.get("flag1way", 0.0)
 
-        # Log critical fields
-        # rospy.loginfo(f"dist2_cl: {dist2_cl}, dist2_left: {dist2_left}, dist2_right: {dist2_right}")
-        # rospy.loginfo(f"half_width: {half_width}, road_radius: {road_radius}, heading_angle: {heading_angle}")
-
-        # Build and return the message
         msg = bng_msgs.RoadsSensor(
             header=std_msgs.msg.Header(
                 stamp=self.current_time,
@@ -341,13 +343,19 @@ class RoadsSensorPublisher(SensorDataPublisher):
             speed_limit=speed_limit,
             flag1way=flag1way
         )
-
         return msg
 
 
-
-
 class IdealRadarPublisher(SensorDataPublisher):
+    """
+    Publishes ideal radar sensor data as `IdealRadarSensor` messages.
+
+    Args:
+        sensor: The radar sensor to be polled.
+        topic_id: The ROS topic for publishing radar data.
+        vehicle: The vehicle object that the sensor is attached to.
+    """
+
     def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, bng_msgs.IdealRadarSensor)
         self.listener = tf.TransformListener()
@@ -356,12 +364,31 @@ class IdealRadarPublisher(SensorDataPublisher):
         self.current_time = rospy.get_rostime()
 
     def xyz_to_vec3(self, x: float, y: float, z: float) -> geom_msgs.Vector3:
+        """
+        Converts x, y, z coordinates into a ROS `Vector3` message.
+
+        Args:
+            x: X-coordinate.
+            y: Y-coordinate.
+            z: Z-coordinate.
+        
+        Returns:
+            A `Vector3` message.
+        """
         return geom_msgs.Vector3(x=x, y=y, z=z)
 
     def _vehicle_to_msg(self, veh: Dict[str, Any]) -> bng_msgs.IdealRadarSensorVehicle:
-        # Use default value (Vector3 with zero velocity) if 'vel' key is missing
-        vel = self.xyz_to_vec3(**veh.get("vel", {"x": 0, "y": 0, "z": 0}))
+        """
+        Converts a vehicle's information dictionary into an `IdealRadarSensorVehicle` message.
+
+        Args:
+            veh: Dictionary containing vehicle data.
         
+        Returns:
+            An `IdealRadarSensorVehicle` message.
+        """
+        vel = self.xyz_to_vec3(**veh.get("vel", {"x": 0, "y": 0, "z": 0}))
+
         return bng_msgs.IdealRadarSensorVehicle(
             vehicle_id=int(veh["vehicleID"]),
             dist_to_player_vehicle_sq=veh["distToPlayerVehicleSq"],
@@ -377,11 +404,17 @@ class IdealRadarPublisher(SensorDataPublisher):
             rel_vel_y=veh.get("relVelY", 0),
         )
 
-
     def _make_msg(self):
+        """
+        Converts the ideal radar sensor data into a ROS `IdealRadarSensor` message.
+
+        Returns:
+            A ROS `IdealRadarSensor` message.
+        """
         data = self._sensor.poll()
         if 0.0 in data:  # bulk data
             data = data[0.0]
+
         msg = bng_msgs.IdealRadarSensor(
             header=std_msgs.msg.Header(
                 stamp=self.current_time,
@@ -395,14 +428,14 @@ class IdealRadarPublisher(SensorDataPublisher):
         return msg
 
 
-
 class PowertrainSensorPublisher(SensorDataPublisher):
     """
-    Powertrain sensor publisher publishing :external+beamng_msgs:doc:`interfaces/msg/PowertrainSensor` messages.
+    Publishes powertrain sensor data as `PowertrainSensor` messages.
 
     Args:
-        name: Name of the sensor.
-        config: Arguments of the sensor passed to the BeamNGpy class.
+        sensor: The powertrain sensor to be polled.
+        topic_id: The ROS topic for publishing powertrain data.
+        vehicle: The vehicle object that the sensor is attached to.
     """
 
     def __init__(self, sensor, topic_id, vehicle):
@@ -412,10 +445,18 @@ class PowertrainSensorPublisher(SensorDataPublisher):
         self.frame_Powertrain_sensor = f'{vehicle.vid}_{sensor_name}'
         self.current_time = rospy.get_rostime()
 
-
     @staticmethod
-    def _device_to_msg(
-        name: str, device: Dict[str, Any]) -> bng_msgs.PowertrainSensorDevice:
+    def _device_to_msg(name: str, device: Dict[str, Any]) -> bng_msgs.PowertrainSensorDevice:
+        """
+        Converts powertrain device data into a `PowertrainSensorDevice` message.
+
+        Args:
+            name: The name of the powertrain device.
+            device: Dictionary containing the device's data.
+
+        Returns:
+            A `PowertrainSensorDevice` message.
+        """
         if isinstance(device, dict):
             return bng_msgs.PowertrainSensorDevice(
                 name=name,
@@ -446,41 +487,97 @@ class PowertrainSensorPublisher(SensorDataPublisher):
                 output_av_2=float("nan"),
             )
 
-
     def _make_msg(self):
+        """
+        Converts the powertrain sensor data into a ROS `PowertrainSensor` message.
+
+        Returns:
+            A ROS `PowertrainSensor` message.
+        """
         data = self._sensor.poll()
         if 0.0 in data:  # bulk data
             data = data[0.0]
+
         msg = bng_msgs.PowertrainSensor(
-        header=std_msgs.msg.Header(
-            stamp=self.current_time,
-            frame_id=self.frame_Powertrain_sensor
-        ),
-        devices=[
-            self._device_to_msg(name, device) for name, device in data.items()
-                 ],
+            header=std_msgs.msg.Header(
+                stamp=self.current_time,
+                frame_id=self.frame_Powertrain_sensor
+            ),
+            devices=[
+                self._device_to_msg(name, device) for name, device in data.items()
+            ],
         )
         return msg
 
+
 class MeshPublisher(SensorDataPublisher):
+    """
+    Publishes mesh sensor data as `MeshSensor` messages.
+
+    Args:
+        sensor: The mesh sensor to be polled.
+        topic_id: The ROS topic for publishing mesh data.
+        vehicle: The vehicle object that the sensor is attached to.
+    """
+
     def __init__(self, sensor, topic_id, vehicle):
-        super().__init__(sensor, topic_id, bng_msgs.MeshSensor)  # Correct message type
+        super().__init__(sensor, topic_id, bng_msgs.MeshSensor)
         self.listener = tf.TransformListener()
         sensor_name = topic_id.split("/")[-1]
         self.frame_Mesh_sensor = f'{vehicle.vid}_{sensor_name}'
         self.current_time = rospy.get_rostime()
-    
+
     def xyz_to_point(self, x: float, y: float, z: float) -> geom_msgs.Point:
+        """
+        Converts x, y, z coordinates into a ROS `Point` message.
+
+        Args:
+            x: X-coordinate.
+            y: Y-coordinate.
+            z: Z-coordinate.
+
+        Returns:
+            A `Point` message.
+        """
         return geom_msgs.Point(x=x, y=y, z=z)
 
     def xyz_to_vec3(self, x: float, y: float, z: float) -> geom_msgs.Vector3:
+        """
+        Converts x, y, z coordinates into a ROS `Vector3` message.
+
+        Args:
+            x: X-coordinate.
+            y: Y-coordinate.
+            z: Z-coordinate.
+
+        Returns:
+            A `Vector3` message.
+        """
         return geom_msgs.Vector3(x=x, y=y, z=z)
-        
+
     @staticmethod
     def _beam_to_msg(beam: Dict[str, Any]) -> bng_msgs.MeshSensorBeam:
+        """
+        Converts beam data into a `MeshSensorBeam` message.
+
+        Args:
+            beam: Dictionary containing beam data.
+
+        Returns:
+            A `MeshSensorBeam` message.
+        """
         return bng_msgs.MeshSensorBeam(stress=beam["stress"])
 
     def _node_to_msg(self, node: Dict[str, Any]) -> bng_msgs.MeshSensorNode:
+        """
+        Converts node data into a `MeshSensorNode` message.
+
+        Args:
+            node: Dictionary containing node data.
+
+        Returns:
+            A `MeshSensorNode` message.
+        """
         return bng_msgs.MeshSensorNode(
             part_origin=node.get("partOrigin", ""),
             mass=node["mass"],
@@ -490,43 +587,59 @@ class MeshPublisher(SensorDataPublisher):
         )
 
     def _make_msg(self):
+        """
+        Converts mesh sensor data into a ROS `MeshSensor` message.
+
+        Returns:
+            A ROS `MeshSensor` message.
+        """
         data = self._sensor.poll()
         msg = bng_msgs.MeshSensor(
             header=std_msgs.msg.Header(
-                stamp=self.current_time,  # Correct header with timestamp
+                stamp=self.current_time,
                 frame_id=self.frame_Mesh_sensor
             ),
-            beams=[
-                self._beam_to_msg(data["beams"][i])
-                for i in range(len(data["beams"]))
-            ],
-            nodes=[
-                self._node_to_msg(data["nodes"][i])
-                for i in range(len(data["nodes"]))
-            ],
+            beams=[self._beam_to_msg(data["beams"][i]) for i in range(len(data["beams"]))],
+            nodes=[self._node_to_msg(data["nodes"][i]) for i in range(len(data["nodes"]))],
         )
         return msg
 
+
 class GPSPublisher(SensorDataPublisher):
+    """
+    Publishes GPS sensor data as `NavSatFix` messages.
+
+    Args:
+        sensor: The GPS sensor to be polled.
+        topic_id: The ROS topic for publishing GPS data.
+        vehicle: The vehicle object that the sensor is attached to.
+    """
+
     def __init__(self, sensor, topic_id, vehicle):
-        super().__init__(sensor, topic_id, NavSatFix)  
+        super().__init__(sensor, topic_id, NavSatFix)
         self.listener = tf.TransformListener()
         sensor_name = topic_id.split("/")[-1]
         self.frame_Gps_sensor = f'{vehicle.vid}_{sensor_name}'
         self.current_time = rospy.get_rostime()
 
     def _make_msg(self):
+        """
+        Converts GPS sensor data into a ROS `NavSatFix` message.
+
+        Returns:
+            A ROS `NavSatFix` message.
+        """
         data = self._sensor.poll()
         if 0.0 in data:
             data = data[0.0]
-        # Ensure the message type matches what the publisher expects
+
         msg = NavSatFix(
             header=std_msgs.msg.Header(
-                stamp=self.current_time,  # Correct header with timestamp
+                stamp=self.current_time,
                 frame_id=self.frame_Gps_sensor
             ),
             status=NavSatStatus(
-                status=NavSatStatus.STATUS_FIX,  
+                status=NavSatStatus.STATUS_FIX,
                 service=NavSatStatus.SERVICE_GPS
             ),
             latitude=data["lat"],
@@ -537,13 +650,24 @@ class GPSPublisher(SensorDataPublisher):
 
 
 class StatePublisher(SensorDataPublisher):
+    """
+    Publishes vehicle state data as `StateSensor` messages.
+
+    Args:
+        sensor: The state sensor to be polled.
+        topic_id: The ROS topic for publishing state data.
+    """
 
     def __init__(self, sensor, topic_id):
-        super().__init__(sensor,
-                         topic_id,
-                         bng_msgs.StateSensor)
+        super().__init__(sensor, topic_id, bng_msgs.StateSensor)
 
     def _make_msg(self):
+        """
+        Converts the vehicle state sensor data into a ROS `StateSensor` message.
+
+        Returns:
+            A ROS `StateSensor` message.
+        """
         data = self._sensor.data
         msg = bng_msgs.StateSensor()
         msg.position = data['pos']
@@ -555,29 +679,50 @@ class StatePublisher(SensorDataPublisher):
 
 
 class TimerPublisher(SensorDataPublisher):
+    """
+    Publishes time sensor data as `TimeSensor` messages.
+
+    Args:
+        sensor: The timer sensor to be polled.
+        topic_id: The ROS topic for publishing time data.
+    """
 
     def __init__(self, sensor, topic_id):
-        super().__init__(sensor,
-                         topic_id,
-                         bng_msgs.TimeSensor)
+        super().__init__(sensor, topic_id, bng_msgs.TimeSensor)
 
     def _make_msg(self):
+        """
+        Converts the time sensor data into a ROS `TimeSensor` message.
+
+        Returns:
+            A ROS `TimeSensor` message.
+        """
         msg = bng_msgs.TimeSensor()
         data = self._sensor.data
         seconds = int(data['time'])
-        # nseconds = (seconds - seconds//1) * 1e9
         msg.beamng_simulation_time.data.set(int(seconds), 0)
         return msg
 
 
 class DamagePublisher(SensorDataPublisher):
+    """
+    Publishes damage sensor data as `DamageSensor` messages.
+
+    Args:
+        sensor: The damage sensor to be polled.
+        topic_id: The ROS topic for publishing damage data.
+    """
 
     def __init__(self, sensor, topic_id):
-        super().__init__(sensor,
-                         topic_id,
-                         bng_msgs.DamageSensor)
+        super().__init__(sensor, topic_id, bng_msgs.DamageSensor)
 
     def _make_msg(self):
+        """
+        Converts the damage sensor data into a ROS `DamageSensor` message.
+
+        Returns:
+            A ROS `DamageSensor` message.
+        """
         msg = bng_msgs.DamageSensor()
         data = self._sensor.data
         for k, v in data['deform_group_damage'].items():
@@ -589,19 +734,30 @@ class DamagePublisher(SensorDataPublisher):
         if data['part_damage']:
             for k, v in data['part_damage'].items():
                 msg.part_damage.part_id.append(k)
-                msg.part_damage.name.append(v['name'])  # todo what is the diff to
-                msg.part_damage.damage.append(v['damage'])  # todo is it in %?
+                msg.part_damage.name.append(v['name'])
+                msg.part_damage.damage.append(v['damage'])
         return msg
 
 
 class GForcePublisher(SensorDataPublisher):
+    """
+    Publishes g-force sensor data as `GForceSensor` messages.
+
+    Args:
+        sensor: The g-force sensor to be polled.
+        topic_id: The ROS topic for publishing g-force data.
+    """
 
     def __init__(self, sensor, topic_id):
-        super().__init__(sensor,
-                         topic_id,
-                         bng_msgs.GForceSensor)
+        super().__init__(sensor, topic_id, bng_msgs.GForceSensor)
 
     def _make_msg(self):
+        """
+        Converts the g-force sensor data into a ROS `GForceSensor` message.
+
+        Returns:
+            A ROS `GForceSensor` message.
+        """
         data = self._sensor.data
         msg = bng_msgs.GForceSensor()
         msg.gx = data['gx']
@@ -614,13 +770,24 @@ class GForcePublisher(SensorDataPublisher):
 
 
 class ElectricsPublisher(SensorDataPublisher):
+    """
+    Publishes electrics sensor data as `ElectricsSensor` messages.
+
+    Args:
+        sensor: The electrics sensor to be polled.
+        topic_id: The ROS topic for publishing electrics data.
+    """
 
     def __init__(self, sensor, topic_id):
-        super().__init__(sensor,
-                         topic_id,
-                         bng_msgs.ElectricsSensor)
+        super().__init__(sensor, topic_id, bng_msgs.ElectricsSensor)
 
     def _make_msg(self):
+        """
+        Converts the electrics sensor data into a ROS `ElectricsSensor` message.
+
+        Returns:
+            A ROS `ElectricsSensor` message.
+        """
         data = self._sensor.data
         msg = bng_msgs.ElectricsSensor()
         msg.accXSmooth = data['accXSmooth']
@@ -741,40 +908,75 @@ class ElectricsPublisher(SensorDataPublisher):
 
 
 class CameraDataPublisher:
+    """
+    Base class for publishing camera data to ROS.
+
+    Args:
+        sensor: The camera sensor object.
+        topic_id: The ROS topic to publish the camera data.
+        msg_type: The ROS message type for the camera data.
+    """
 
     def __init__(self, sensor, topic_id, msg_type):
-        rospy.logdebug(f'publishing to {topic_id}')
+        rospy.logdebug(f'Publishing to {topic_id}')
         self._sensor = sensor
-        self._pub = rospy.Publisher(topic_id,
-                                    msg_type,
-                                    queue_size=1)
+        self._pub = rospy.Publisher(topic_id, msg_type, queue_size=1)
         self.current_time = rospy.get_rostime()
         self.frame_map = 'map'
 
     @abstractmethod
     def _make_msg(self, data):
+        """
+        Abstract method for creating a ROS message from the camera data.
+
+        Args:
+            data: The data to convert into a ROS message.
+        """
         pass
 
     def publish(self, current_time, data):
+        """
+        Publish the message created by `_make_msg` to the ROS topic.
+
+        Args:
+            current_time: The current time for publishing.
+            data: The data to be published.
+        """
         self.current_time = current_time
         msg = self._make_msg(data)
         self._pub.publish(msg)
 
 
 class ColorImgPublisher(CameraDataPublisher):
+    """
+    Publishes color image data as `Image` messages.
+
+    Args:
+        sensor: The camera sensor to be polled.
+        topic_id: The ROS topic for publishing color image data.
+        cv_helper: The CvBridge helper for converting OpenCV images to ROS Image messages.
+        data_descriptor: The key to access image data in the sensor data.
+    """
 
     def __init__(self, sensor, topic_id, cv_helper, data_descriptor):
-        super().__init__(sensor,
-                         topic_id,
-                         Image)
+        super().__init__(sensor, topic_id, Image)
         self._cv_helper = cv_helper
         self._data_descriptor = data_descriptor
 
     def _make_msg(self, data):
+        """
+        Converts the color image sensor data into a ROS `Image` message.
+
+        Args:
+            data: The sensor data containing the color image.
+        
+        Returns:
+            A ROS `Image` message.
+        """
         img = data[self._data_descriptor]
         if img is not None:
             img = np.array(img.convert('RGB'))
-            img = img[:, :, ::-1].copy()
+            img = img[:, :, ::-1].copy()  # Convert to BGR format for ROS compatibility
         else:
             img = np.zeros_like(data['colour'].convert('RGB'))
         try:
@@ -785,14 +987,29 @@ class ColorImgPublisher(CameraDataPublisher):
 
 
 class DepthImgPublisher(CameraDataPublisher):
+    """
+    Publishes depth image data as `Image` messages.
+
+    Args:
+        sensor: The depth camera sensor to be polled.
+        topic_id: The ROS topic for publishing depth image data.
+        cv_helper: The CvBridge helper for converting OpenCV images to ROS Image messages.
+    """
 
     def __init__(self, sensor, topic_id, cv_helper):
-        super().__init__(sensor,
-                         topic_id,
-                         Image)
+        super().__init__(sensor, topic_id, Image)
         self._cv_helper = cv_helper
 
     def _make_msg(self, data):
+        """
+        Converts the depth image sensor data into a ROS `Image` message.
+
+        Args:
+            data: The sensor data containing the depth image.
+        
+        Returns:
+            A ROS `Image` message.
+        """
         img = data['depth']
         near, far = self._sensor.near_far_planes
         img = (np.array(img) - near) / far * 255
@@ -805,30 +1022,51 @@ class DepthImgPublisher(CameraDataPublisher):
 
 
 class BBoxImgPublisher(CameraDataPublisher):
+    """
+    Publishes bounding box image data as `Image` messages.
+
+    Args:
+        sensor: The camera sensor to be polled.
+        topic_id: The ROS topic for publishing bounding box image data.
+        cv_helper: The CvBridge helper for converting OpenCV images to ROS Image messages.
+        vehicle: The vehicle object associated with the bounding boxes.
+    """
 
     def __init__(self, sensor, topic_id, cv_helper, vehicle):
-        super().__init__(sensor,
-                         topic_id,
-                         Image)
+        super().__init__(sensor, topic_id, Image)
         self._cv_helper = cv_helper
         self._vehicle = vehicle
         self._classes = None
 
     def _update_data_with_bbox(self, data):
+        """
+        Adds bounding boxes to the image data.
+
+        Args:
+            data: The sensor data containing the image and annotation information.
+        
+        Returns:
+            The image with bounding boxes drawn.
+        """
         if self._classes is None:
             annotations = self._vehicle.bng.get_annotations()
             self._classes = self._vehicle.bng.get_annotation_classes(annotations)
-        bboxes = bng_sensors.Camera.extract_bboxes(data['annotation'],
-                                                   data['instance'],
-                                                   self._classes)
+        bboxes = bng_sensors.Camera.extract_bboxes(data['annotation'], data['instance'], self._classes)
         bboxes = [b for b in bboxes if b['class'] == 'CAR']
         rospy.logdebug(f'bboxes: {bboxes}')
-        bbox_img = bng_sensors.Camera.draw_bboxes(bboxes,
-                                                  data['colour'],
-                                                  width=3)
+        bbox_img = bng_sensors.Camera.draw_bboxes(bboxes, data['colour'], width=3)
         return bbox_img
 
     def _make_msg(self, data):
+        """
+        Converts the bounding box image sensor data into a ROS `Image` message.
+
+        Args:
+            data: The sensor data containing the image and bounding boxes.
+        
+        Returns:
+            A ROS `Image` message.
+        """
         img = self._update_data_with_bbox(data)
         img = img.convert('RGB')
         img = np.array(img)
@@ -841,46 +1079,43 @@ class BBoxImgPublisher(CameraDataPublisher):
 
 
 class CameraPublisher(BNGPublisher):
+    """
+    Camera data publisher for multiple types of camera sensor data (color, depth, annotations).
+
+    Args:
+        sensor: The camera sensor object.
+        topic_id: The ROS topic base for publishing camera data.
+        vehicle: The vehicle object the camera is attached to.
+    """
+
     def __init__(self, sensor, topic_id, vehicle):
         self._sensor = sensor
         self._cv_helper = CvBridge()
         self._publishers = list()
         if self._sensor.is_render_colours:
             color_topic = '/'.join([topic_id, 'colour'])
-            pub = ColorImgPublisher(sensor,
-                                    color_topic,
-                                    self._cv_helper,
-                                    'colour')
+            pub = ColorImgPublisher(sensor, color_topic, self._cv_helper, 'colour')
             self._publishers.append(pub)
         if self._sensor.is_render_depth:
             depth_topic = '/'.join([topic_id, 'depth'])
-            pub = DepthImgPublisher(sensor,
-                                    depth_topic,
-                                    self._cv_helper)
+            pub = DepthImgPublisher(sensor, depth_topic, self._cv_helper)
             self._publishers.append(pub)
         if self._sensor.is_render_annotations:
             annotation_topic = '/'.join([topic_id, 'annotation'])
-            pub = ColorImgPublisher(sensor,
-                                    annotation_topic,
-                                    self._cv_helper,
-                                    'annotation')
+            pub = ColorImgPublisher(sensor, annotation_topic, self._cv_helper, 'annotation')
             self._publishers.append(pub)
         if self._sensor.is_render_instance:
             inst_ann_topic = '/'.join([topic_id, 'instance'])
-            pub = ColorImgPublisher(sensor,
-                                    inst_ann_topic,
-                                    self._cv_helper,
-                                    'instance')
+            pub = ColorImgPublisher(sensor, inst_ann_topic, self._cv_helper, 'instance')
             self._publishers.append(pub)
-        # if self._sensor.bbox:
-        #     bbox_topic = '/'.join([topic_id, 'bounding_box'])
-        #     pub = BBoxImgPublisher(sensor,
-        #                            bbox_topic,
-        #                            self._cv_helper,
-        #                            vehicle)
-        #     self._publishers.append(pub)
 
     def publish(self, current_time):
+        """
+        Polls the camera sensor data and publishes it using the appropriate publisher(s).
+
+        Args:
+            current_time: The current time for publishing.
+        """
         if self._sensor.is_render_instance:
             data = self._sensor.get_full_poll_request()
         else:
@@ -888,8 +1123,18 @@ class CameraPublisher(BNGPublisher):
         for pub in self._publishers:
             pub.current_time = current_time
             pub.publish(current_time, data)
-
+            
+            
 class UltrasonicPublisher(SensorDataPublisher):
+    """
+    Publishes ultrasonic sensor data as `Range` messages.
+
+    Args:
+        sensor: The ultrasonic sensor to be polled.
+        topic_id: The ROS topic for publishing ultrasonic sensor data.
+        vehicle: The vehicle object that the sensor is attached to.
+    """
+
     def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, Range)
         self.listener = tf.TransformListener()
@@ -897,32 +1142,41 @@ class UltrasonicPublisher(SensorDataPublisher):
         self.frame_USSensor_sensor = f'{vehicle.vid}_{sensor_name}'
         self.current_time = rospy.get_rostime()
 
-    def _make_msg(self):      
+    def _make_msg(self):
+        """
+        Converts the ultrasonic sensor data into a ROS `Range` message.
+
+        Returns:
+            A ROS `Range` message containing the sensor data.
+        """
         data = self._sensor.poll()
         USSensor_msg = Range()
         USSensor_msg.radiation_type = Range.ULTRASOUND
-        # USSensor_msg.radiation_type = Range.INFRARED
-        USSensor_msg.header.frame_id =  self.frame_USSensor_sensor 
+        USSensor_msg.header.frame_id = self.frame_USSensor_sensor
         USSensor_msg.header.stamp = self.current_time
-        # USSensor_msg.field_of_view = 0.1
         USSensor_msg.field_of_view = 5.7
         USSensor_msg.min_range = 0.1
         USSensor_msg.max_range = 5.0
-        # USSensor_msg.max_range = 9999.900390625
-        USSensor_msg.range =  data['distance']
-
+        USSensor_msg.range = data['distance']
 
         try:
             (trans_map, _) = self.listener.lookupTransform(self.frame_map, self.frame_USSensor_sensor, USSensor_msg.header.stamp)
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-            rospy.logwarn(f'No transform between {self.frame_map} and '
-                          f'{self.frame_USSensor_sensor} available with exception: {e}')
-            
+            rospy.logwarn(f'No transform between {self.frame_map} and {self.frame_USSensor_sensor} available with exception: {e}')
 
         return USSensor_msg
 
 
 class AdvancedIMUPublisher(SensorDataPublisher):
+    """
+    Publishes IMU sensor data as `Imu` messages.
+
+    Args:
+        sensor: The IMU sensor to be polled.
+        topic_id: The ROS topic for publishing IMU data.
+        vehicle: The vehicle object that the sensor is attached to.
+    """
+
     def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, Imu)
         self.listener = tf.TransformListener()
@@ -930,14 +1184,15 @@ class AdvancedIMUPublisher(SensorDataPublisher):
         self.frame_ImuSensor_sensor = f'{vehicle.vid}_{sensor_name}'
         self.current_time = rospy.get_rostime()
 
-
     def _make_msg(self):
+        """
+        Converts the IMU sensor data into a ROS `Imu` message.
+
+        Returns:
+            A ROS `Imu` message containing the sensor data.
+        """
         data = self._sensor.poll()
 
-        # Debugging to check the returned data
-        # rospy.logdebug(f"Sensor data: {data}")
-
-        # Ensure data is not None and is in the expected format
         if data is None or len(data) < 2:
             rospy.logerr("Invalid sensor data. Skipping IMU message publication.")
             return None
@@ -945,25 +1200,21 @@ class AdvancedIMUPublisher(SensorDataPublisher):
         try:
             imu_msg = Imu()
             imu_msg.header.stamp = self.current_time
-            imu_msg.header.frame_id = 'advanced_imu_sensor'  # Can change to desired frame id
+            imu_msg.header.frame_id = 'advanced_imu_sensor'
 
-            # Orientation quaternion (make sure it's a full quaternion [x, y, z, w])
             imu_msg.orientation.x = data[1]['dirX'][0]
             imu_msg.orientation.y = data[1]['dirY'][1]
             imu_msg.orientation.z = data[1]['dirZ'][2]
-            imu_msg.orientation.w = 1.0  # Set `w` component (assumed to be normalized)
+            imu_msg.orientation.w = 1.0  # Assume the quaternion is normalized
 
-            # Angular velocity
             imu_msg.angular_velocity.x = data[1]['angVel'][0]
             imu_msg.angular_velocity.y = data[1]['angVel'][1]
             imu_msg.angular_velocity.z = data[1]['angVel'][2]
 
-            # Linear acceleration
             imu_msg.linear_acceleration.x = data[1]['accRaw'][0]
             imu_msg.linear_acceleration.y = data[1]['accRaw'][1]
             imu_msg.linear_acceleration.z = data[1]['accRaw'][2]
 
-            # Optionally, you can also assign covariance matrices if applicable
             imu_msg.orientation_covariance = np.zeros(9)
             imu_msg.angular_velocity_covariance = np.zeros(9)
             imu_msg.linear_acceleration_covariance = np.zeros(9)
@@ -977,7 +1228,16 @@ class AdvancedIMUPublisher(SensorDataPublisher):
             rospy.logerr(f"IndexError encountered: {e}")
             return None
 
+
 class LidarPublisher(SensorDataPublisher):
+    """
+    Publishes lidar sensor data as `PointCloud2` messages.
+
+    Args:
+        sensor: The lidar sensor to be polled.
+        topic_id: The ROS topic for publishing lidar data.
+        vehicle: The vehicle object that the sensor is attached to.
+    """
 
     def __init__(self, sensor, topic_id, vehicle):
         super().__init__(sensor, topic_id, PointCloud2)
@@ -985,10 +1245,13 @@ class LidarPublisher(SensorDataPublisher):
         sensor_name = topic_id.split("/")[-1]
         self.frame_lidar_sensor = f'{vehicle.vid}_{sensor_name}'
 
-
-
-
     def _make_msg(self):
+        """
+        Converts the lidar sensor data into a ROS `PointCloud2` message.
+
+        Returns:
+            A ROS `PointCloud2` message containing the lidar point cloud data.
+        """
         header = std_msgs.msg.Header()
         header.frame_id = self.frame_lidar_sensor
         header.stamp = self.current_time
@@ -999,25 +1262,19 @@ class LidarPublisher(SensorDataPublisher):
         num_points = points.shape[0]
         colours = colours[:num_points]
 
-        # Extract intensity
         intensities = colours[:, 0] if colours.size > 0 else np.zeros((num_points,))
 
-        pointcloud_fields = [('x', np.float32),
-                            ('y', np.float32),
-                            ('z', np.float32),
-                            ('intensity', np.float32)]
+        pointcloud_fields = [('x', np.float32), ('y', np.float32), ('z', np.float32), ('intensity', np.float32)]
 
         try:
             (trans_map, rot_map) = self.listener.lookupTransform(self.frame_map, self.frame_lidar_sensor, header.stamp)
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-            rospy.logwarn(f'No transform between {self.frame_map} and '
-                        f'{self.frame_lidar_sensor} available with exception: {e}')
+            rospy.logwarn(f'No transform between {self.frame_map} and {self.frame_lidar_sensor} available with exception: {e}')
             points = np.zeros((0, 3))
-            intensities = np.zeros((0,))  # Change here
+            intensities = np.zeros((0,))
             trans_map = np.zeros(3)
             rot_map = tf_transformations.quaternion_from_euler(0, 0, 0)  # Identity rotation
 
-        # Apply the transformation to the point cloud data
         rotation_matrix = tf_transformations.quaternion_matrix(rot_map)[:3, :3]
         rotated_points = np.dot(points - trans_map, rotation_matrix.T)
 
@@ -1033,26 +1290,31 @@ class LidarPublisher(SensorDataPublisher):
 
 
 class VehiclePublisher(BNGPublisher):
+    """
+    Publishes vehicle-related data, including sensor data and vehicle pose,
+    to the appropriate ROS topics.
 
-    def __init__(self, vehicle,
-                 node_name,
-                 visualize=True):
+    Args:
+        vehicle: The vehicle object containing sensors to be polled.
+        node_name: The name of the ROS node.
+        visualize: Boolean to indicate whether to publish a visualization marker.
+    """
+
+    def __init__(self, vehicle, node_name, visualize=True):
         self._vehicle = vehicle
         self.node_name = node_name
         self._sensor_publishers = list()
-        
+
+        # Set up a broadcaster for vehicle pose
         self._broadcaster_pose = tf2_ros.TransformBroadcaster()
         self.tf_msg = tf2_ros.TransformStamped()
         self.frame_map = 'map'
         self.tf_msg.header.frame_id = self.frame_map
         self.tf_msg.child_frame_id = self._vehicle.vid
-        self.alignment_quat = np.array([0, 1, 0, 0])  # sets the forward direction as -y
-        # # self.alignment_quat = np.array([0, 0, 0, 1])  # sets the forward direction as -y
-        # self.alignment_quat = np.array([1, 0, 0, 0])
-        # self.alignment_quat = np.array([0, -1, 0, 0])  # sets the forward direction as -y
+        self.alignment_quat = np.array([0, 1, 0, 0])  # Sets the forward direction as -y
         self.current_time = rospy.get_rostime()
 
-        # self.node_name = node_name
+        # Set up publishers for each sensor
         for sensor_name, sensor in vehicle.sensors.items():
             topic_id = [node_name, vehicle.vid, sensor_name]
             topic_id = '/'.join([str(x) for x in topic_id])
@@ -1064,40 +1326,47 @@ class VehiclePublisher(BNGPublisher):
                 pub = pub(sensor, topic_id)
             self._sensor_publishers.append(pub)
 
+        # Optionally set up visualization for vehicle position
         self.visualizer = None
         if visualize:
             topic_id = [node_name, vehicle.vid, 'marker']
             topic_id = '/'.join(topic_id)
-            self.visualizer = rospy.Publisher(topic_id,
-                                              Marker,
-                                              queue_size=1)
+            self.visualizer = rospy.Publisher(topic_id, Marker, queue_size=1)
 
     def broadcast_vehicle_pose(self, data):
+        """
+        Broadcasts the vehicle pose as a ROS TF transform.
+
+        Args:
+            data: The data containing the vehicle's pose (position and orientation).
+        """
         self.tf_msg.header.stamp = self.current_time
         self.tf_msg.transform.translation.x = data['pos'][0]
         self.tf_msg.transform.translation.y = data['pos'][1]
         self.tf_msg.transform.translation.z = data['pos'][2]
-        quat_orientation = np.array([data['rotation'][0],
-                                     data['rotation'][1],
-                                     data['rotation'][2],
-                                     data['rotation'][3]])
 
+        quat_orientation = np.array([data['rotation'][0], data['rotation'][1], data['rotation'][2], data['rotation'][3]])
         quat_orientation = quaternion_multiply(self.alignment_quat, quat_orientation)
         quat_orientation /= np.linalg.norm(quat_orientation)
 
-        self.tf_msg.transform.rotation.x = quat_orientation[0]  # data['rotation'][0]
-        self.tf_msg.transform.rotation.y = quat_orientation[1]  # data['rotation'][1]
-        self.tf_msg.transform.rotation.z = quat_orientation[2]  # data['rotation'][2]
-        self.tf_msg.transform.rotation.w = quat_orientation[3]  # data['rotation'][3]
-        
-        # self.tf_msg.transform.rotation.x = data['rotation'][0]
-        # self.tf_msg.transform.rotation.y = data['rotation'][1]
-        # self.tf_msg.transform.rotation.z = data['rotation'][2]
-        # self.tf_msg.transform.rotation.w = data['rotation'][3]
+        self.tf_msg.transform.rotation.x = quat_orientation[0]
+        self.tf_msg.transform.rotation.y = quat_orientation[1]
+        self.tf_msg.transform.rotation.z = quat_orientation[2]
+        self.tf_msg.transform.rotation.w = quat_orientation[3]
+
         self._broadcaster_pose.sendTransform(self.tf_msg)
 
-
     def state_to_marker(self, data, marker_ns):
+        """
+        Converts the vehicle state into a ROS Marker message for visualization.
+
+        Args:
+            data: The data containing the vehicle's state (position, rotation).
+            marker_ns: The namespace for the marker.
+
+        Returns:
+            A ROS Marker message.
+        """
         mark = Marker()
         mark.header.frame_id = self.frame_map
         mark.header.stamp = self.current_time
@@ -1108,11 +1377,9 @@ class VehiclePublisher(BNGPublisher):
         mark.lifetime = rospy.Duration()
 
         mark.pose.position.x = data['pos'][0]
-        # mark.pose.position.x = data['pos'][0]+1.9
         mark.pose.position.y = data['pos'][1]
         mark.pose.position.z = data['pos'][2]
 
-        # Apply a 20-degree rotation to the left
         rotation_matrix = tf_trans.quaternion_matrix(data['rotation'])
         rotation_matrix = tf_trans.rotation_matrix(-10.0, [0, 0, 1]) @ rotation_matrix
         new_quaternion = tf_trans.quaternion_from_matrix(rotation_matrix)
@@ -1133,23 +1400,35 @@ class VehiclePublisher(BNGPublisher):
 
         return mark
 
-
-   
     def publish(self, current_time):
+        """
+        Polls vehicle sensors and publishes data, including vehicle pose and visualization markers.
+
+        Args:
+            current_time: The current time for publishing.
+        """
         self.current_time = current_time
         self._vehicle.poll_sensors()
         self.broadcast_vehicle_pose(self._vehicle.sensors['state'].data)
-        for pub in self._sensor_publishers:  # this got us 1fps more
+
+        # Start a thread to publish each sensor's data
+        for pub in self._sensor_publishers:
             threading.Thread(target=pub.publish, args=(current_time,), daemon=True).start()
+
+        # Publish visualization marker if enabled
         if self.visualizer is not None:
             mark = self.state_to_marker(self._vehicle.sensors['state'].data, self._vehicle.vid)
             self.visualizer.publish(mark)
-            # print ("vehicle marker : ", mark)
 
 
-
-# Ori
 class NetworkPublisher(BNGPublisher):
+    """
+    Publishes road network visualization data as `MarkerArray` messages.
+
+    Args:
+        game_client: The game client object to retrieve road data from.
+        node_name: The ROS node name.
+    """
 
     def __init__(self, game_client, node_name):
         self.frame_map = 'map'
@@ -1161,9 +1440,12 @@ class NetworkPublisher(BNGPublisher):
         self.current_time = rospy.get_rostime()
 
     def set_up_road_network_viz(self):
+        """
+        Retrieves and sets up the road network visualization as a `MarkerArray`.
+        """
         roads = self._game_client.get_roads()
-        
-        # Check if roads is a dictionary and not empty
+
+        # Check if roads data is valid and not empty
         if isinstance(roads, dict) and roads:
             network_def = dict()
             for r_id, r_inf in roads.items():
@@ -1172,7 +1454,6 @@ class NetworkPublisher(BNGPublisher):
 
             self._road_network = MarkerArray()
             for r_id, road in network_def.items():
-                # rospy.logdebug(f'++++++++++\nroad: {road}')
                 mark = Marker()
                 mark.header = std_msgs.msg.Header()
                 mark.header.frame_id = self.frame_map
@@ -1182,7 +1463,7 @@ class NetworkPublisher(BNGPublisher):
                 mark.ns = ns
                 mark.action = Marker.ADD
                 mark.id = r_id
-                mark.lifetime = rospy.Duration(0)  # leave them up forever
+                mark.lifetime = rospy.Duration(0)  # Leave them up forever
 
                 mark.pose.position.x = 0
                 mark.pose.position.y = 0
@@ -1205,20 +1486,30 @@ class NetworkPublisher(BNGPublisher):
                     mark.points.append(p)
                 self._road_network.markers.append(mark)
             marker_num = len(self._road_network.markers)
-            rospy.logdebug(f'the road network contains {marker_num} markers')
+            rospy.logdebug(f'The road network contains {marker_num} markers')
         else:
             rospy.logwarn("No road information available.")
 
-
-
     def publish(self, current_time):
+        """
+        Publishes the road network visualization to the ROS topic.
+
+        Args:
+            current_time: The current time for publishing.
+        """
         self.current_time = current_time
         if self._road_network is None:
             self.set_up_road_network_viz()
         self._pub.publish(self._road_network.markers)
 
-
 class NetworkPublisherM(BNGPublisher):
+    """
+    Publishes middle lane road network visualization data as `MarkerArray` messages.
+
+    Args:
+        game_client: The game client object to retrieve road data from.
+        node_name: The ROS node name.
+    """
 
     def __init__(self, game_client, node_name):
         self.frame_map = 'map'
@@ -1230,6 +1521,9 @@ class NetworkPublisherM(BNGPublisher):
         self.current_time = rospy.get_rostime()
 
     def set_up_road_network_viz(self):
+        """
+        Retrieves and sets up the middle lane road network visualization as a `MarkerArray`.
+        """
         roads = self._game_client.get_roads()
         network_def = dict()
         for r_id, r_inf in roads.items():
@@ -1238,17 +1532,15 @@ class NetworkPublisherM(BNGPublisher):
 
         self._road_network = MarkerArray()
         for r_id, road in network_def.items():
-            # rospy.logdebug(f'++++++++++\nroad: {road}')
             mark = Marker()
             mark.header = std_msgs.msg.Header()
             mark.header.frame_id = self.frame_map
             mark.header.stamp = self.current_time
             mark.type = Marker.LINE_STRIP
-            ns = self._node_name
-            mark.ns = ns
+            mark.ns = self._node_name
             mark.action = Marker.ADD
             mark.id = r_id
-            mark.lifetime = rospy.Duration(0)  # leave them up forever
+            mark.lifetime = rospy.Duration(0)  # Leave them up forever
 
             mark.pose.position.x = 0
             mark.pose.position.y = 0
@@ -1261,25 +1553,38 @@ class NetworkPublisherM(BNGPublisher):
             mark.scale.x = 1
             mark.scale.y = 0.5
 
-            mark.color.r = 0.5  
-            mark.color.b = 0.5  
-            mark.color.g = 0.5  
+            mark.color.r = 0.5
+            mark.color.b = 0.5
+            mark.color.g = 0.5
             mark.color.a = 1
+
             for r_point in road:
                 r_point = r_point['middle']
                 p = geom_msgs.Point(r_point[0], r_point[1], r_point[2])
                 mark.points.append(p)
             self._road_network.markers.append(mark)
-        marker_num = len(self._road_network.markers)
-        rospy.logdebug(f'the road network contains {marker_num} markers')
 
     def publish(self, current_time):
+        """
+        Publishes the middle lane road network visualization to the ROS topic.
+
+        Args:
+            current_time: The current time for publishing.
+        """
         self.current_time = current_time
         if self._road_network is None:
             self.set_up_road_network_viz()
         self._pub.publish(self._road_network.markers)
 
+
 class NetworkPublisherR(BNGPublisher):
+    """
+    Publishes right lane road network visualization data as `MarkerArray` messages.
+
+    Args:
+        game_client: The game client object to retrieve road data from.
+        node_name: The ROS node name.
+    """
 
     def __init__(self, game_client, node_name):
         self.frame_map = 'map'
@@ -1291,6 +1596,9 @@ class NetworkPublisherR(BNGPublisher):
         self.current_time = rospy.get_rostime()
 
     def set_up_road_network_viz(self):
+        """
+        Retrieves and sets up the right lane road network visualization as a `MarkerArray`.
+        """
         roads = self._game_client.get_roads()
         network_def = dict()
         for r_id, r_inf in roads.items():
@@ -1299,17 +1607,15 @@ class NetworkPublisherR(BNGPublisher):
 
         self._road_network = MarkerArray()
         for r_id, road in network_def.items():
-            # rospy.logdebug(f'++++++++++\nroad: {road}')
             mark = Marker()
             mark.header = std_msgs.msg.Header()
             mark.header.frame_id = self.frame_map
             mark.header.stamp = self.current_time
             mark.type = Marker.LINE_STRIP
-            ns = self._node_name
-            mark.ns = ns
+            mark.ns = self._node_name
             mark.action = Marker.ADD
             mark.id = r_id
-            mark.lifetime = rospy.Duration(0)  # leave them up forever
+            mark.lifetime = rospy.Duration(0)
 
             mark.pose.position.x = 0
             mark.pose.position.y = 0
@@ -1326,21 +1632,34 @@ class NetworkPublisherR(BNGPublisher):
             mark.color.b = 0
             mark.color.g = 0
             mark.color.a = 1
+
             for r_point in road:
                 r_point = r_point['right']
                 p = geom_msgs.Point(r_point[0], r_point[1], r_point[2])
                 mark.points.append(p)
             self._road_network.markers.append(mark)
-        marker_num = len(self._road_network.markers)
-        rospy.logdebug(f'the road network contains {marker_num} markers')
 
     def publish(self, current_time):
+        """
+        Publishes the right lane road network visualization to the ROS topic.
+
+        Args:
+            current_time: The current time for publishing.
+        """
         self.current_time = current_time
         if self._road_network is None:
             self.set_up_road_network_viz()
         self._pub.publish(self._road_network.markers)
 
+
 class NetworkPublisherL(BNGPublisher):
+    """
+    Publishes left lane road network visualization data as `MarkerArray` messages.
+
+    Args:
+        game_client: The game client object to retrieve road data from.
+        node_name: The ROS node name.
+    """
 
     def __init__(self, game_client, node_name):
         self.frame_map = 'map'
@@ -1352,6 +1671,9 @@ class NetworkPublisherL(BNGPublisher):
         self.current_time = rospy.get_rostime()
 
     def set_up_road_network_viz(self):
+        """
+        Retrieves and sets up the left lane road network visualization as a `MarkerArray`.
+        """
         roads = self._game_client.get_roads()
         network_def = dict()
         for r_id, r_inf in roads.items():
@@ -1360,17 +1682,15 @@ class NetworkPublisherL(BNGPublisher):
 
         self._road_network = MarkerArray()
         for r_id, road in network_def.items():
-            # rospy.logdebug(f'++++++++++\nroad: {road}')
             mark = Marker()
             mark.header = std_msgs.msg.Header()
             mark.header.frame_id = self.frame_map
             mark.header.stamp = self.current_time
             mark.type = Marker.LINE_STRIP
-            ns = self._node_name
-            mark.ns = ns
+            mark.ns = self._node_name
             mark.action = Marker.ADD
             mark.id = r_id
-            mark.lifetime = rospy.Duration(0)  # leave them up forever
+            mark.lifetime = rospy.Duration(0)
 
             mark.pose.position.x = 0
             mark.pose.position.y = 0
@@ -1387,38 +1707,21 @@ class NetworkPublisherL(BNGPublisher):
             mark.color.b = 0
             mark.color.g = 0
             mark.color.a = 1
+
             for r_point in road:
                 r_point = r_point['left']
                 p = geom_msgs.Point(r_point[0], r_point[1], r_point[2])
                 mark.points.append(p)
             self._road_network.markers.append(mark)
-        marker_num = len(self._road_network.markers)
-        rospy.logdebug(f'the road network contains {marker_num} markers')
 
     def publish(self, current_time):
+        """
+        Publishes the left lane road network visualization to the ROS topic.
+
+        Args:
+            current_time: The current time for publishing.
+        """
         self.current_time = current_time
         if self._road_network is None:
             self.set_up_road_network_viz()
         self._pub.publish(self._road_network.markers)
-
-
-#Deprecated 
-# class IMUPublisher(SensorDataPublisher):
-
-#     def __init__(self, sensor, topic_id):
-#         super().__init__(sensor,
-#                          topic_id,
-#                          sensor_msgs.msg.Imu)
-
-#     def _make_msg(self):
-#         data = self._sensor.data
-#         msg = sensor_msgs.msg.Imu()
-#         msg.orientation = geom_msgs.Quaternion(0, 0, 0, 0)
-#         msg.orientation_covariance = [-1, ] * 9
-#         msg.angular_velocity = geom_msgs.Vector3(*[data[x] for x in ['aX', 'aY', 'aZ']])
-#         msg.angular_velocity_covariance = [-1, ] * 9
-#         msg.linear_acceleration = geom_msgs.Vector3(*[data[x] for x in ['gX', 'gY', 'gZ']])
-#         msg.linear_acceleration_covariance = [-1, ] * 9
-#         return msg
-
-

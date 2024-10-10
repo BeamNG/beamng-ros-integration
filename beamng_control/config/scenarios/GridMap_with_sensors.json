@@ -1,7 +1,7 @@
 {
   "version": 0.1,
   "level": "GridMap",
-  "name": "road_network",
+  "name": "GridMap_with_sensors",
   "mode": "None",
   "network_vizualization": "off",
   "vehicles": [
@@ -56,7 +56,7 @@
         },
         {
           "name": "advance_imu",
-          "type": "AdvancedIMU",
+          "type": "AdvancedIMU.default",
           "gfx_update_time": 0.0,
           "physics_update_time": 0.01,
           "position": [0.5, 0.0, 1.0],

@@ -116,13 +116,11 @@ This section lists common issues with  BeamNG ROS Integration in particular. Sin
 library is closely tied to BeamNG.tech and thus BeamNG.drive, it is also
 recommended to consult the documentation on BeamNG.drive here:
 
-[https://documentation.beamng.com/][8]
+[https://documentation.beamng.com/](https://documentation.beamng.com/)
 
 
 ## Contributions
 
-We always welcome user contributions, be sure to check out our [contribution guidelines][9] first, before starting your work.
+We always welcome user contributions, be sure to check out our [contribution guidelines](https://github.com/BeamNG/BeamNG-ROS-Integration/blob/master/contributing.md) first, before starting your work.
 
 [1]: https://github.com/BeamNG/BeamNGpy
-[8]: https://documentation.beamng.com/
-[9]: https://github.com/BeamNG/BeamNG-ROS-Integration/blob/master/contributing.md
