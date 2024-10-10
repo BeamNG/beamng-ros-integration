@@ -1,15 +1,15 @@
 {
   "version": 0.1,
   "level": "west_coast_usa",
-  "name": "road_network",
+  "name": "west_coast_with_all_sensors",
   "mode": "None",
   "network_vizualization": "on",
   "vehicles": [
     {
       "name": "ego_vehicle",
       "model": "etk800",
-      "position": [-717, 101, 118],
-      "rotation": [0, 0, 0.3826834, 0.9238795],
+      "position": [56.977, 49.188, 119.608],
+      "rotation": [0, 0, 0, 1],
       "sensors_classical": [
         {
           "name": "electrics0",
@@ -45,14 +45,59 @@
         {
           "name": "ultrasonic_right0",
           "type":"Ultrasonic.smallrange",
-          "position":[-1.2, -2.1, 1.0],
+          "position":[-1.2, -2.1, 0.0],
           "rotation":[-1.0, -1.0, 0.1]
         },
         {
           "name": "ultrasonic_left0",
           "type":"Ultrasonic.smallrange",
-          "position":[1.2, -2.1, 1.0],
+          "position":[1.2, -2.1, 0.0],
           "rotation":[1.0, -1.0, 0.1]
+        },
+        {
+          "name": "advance_imu",
+          "type": "AdvancedIMU.default",
+          "gfx_update_time": 0.0,
+          "physics_update_time": 0.01,
+          "position": [0.5, 0.0, 1.0],
+          "rotation": [0, -1, 0],
+          "is_visualised": true
+        },
+        {
+          "name": "gps0",
+          "type":"GPS.default",
+          "position":[0, 0, 0],
+          "rotation": [0, -1, 0]
+        },
+        {
+          "name": "mesh0",
+          "type":"Mesh.default",
+          "position":[0, 0, 0],
+          "rotation": [0, -1, 0]
+        },
+        {
+          "name": "ideal_radar0",
+          "type":"IdealRadar.default",
+          "position":[0, 0, 0],
+          "rotation": [0, -1, 0]
+        },
+        {
+          "name": "powertrain_sensor0",
+          "type":"PowertrainSensor.default",
+          "position":[0, 0, 0],
+          "rotation": [0, -1, 0]
+        },
+        {
+          "name": "roads_sensor0",
+          "type":"RoadsSensor.default",
+          "position":[0, 0, 0],
+          "rotation": [0, -1, 0]
+        },
+        {
+          "name": "radar0",
+          "type":"Radar.default",
+          "position":[0, 0, 0],
+          "rotation": [0, -1, 0]
         }
       ]
     }

@@ -1,7 +1,7 @@
 {
   "version": 0.1,
   "level": "GridMap",
-  "name": "road_network",
+  "name": "GridMap",
   "mode": "None",
   "vehicles": [
     {

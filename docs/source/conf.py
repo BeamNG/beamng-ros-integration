@@ -17,9 +17,9 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'BeamNG.tech ROS Integration'
-copyright = '2021, BeamNG GmbH'
-author = 'BeamNG GmbH'
+project = "BeamNG-ROS-Integration"
+copyright = "2024, BeamNG GmbH"
+author = "BeamNG GmbH"
 
 
 # -- General configuration ---------------------------------------------------

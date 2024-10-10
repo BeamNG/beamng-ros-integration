@@ -1,7 +1,7 @@
 {
   "version": 0.1,
   "level": "smallgrid",
-  "name": "road_network",
+  "name": "smallgrid_with_sensors",
   "mode": "None",
   "network_vizualization": "off",
   "vehicles": [

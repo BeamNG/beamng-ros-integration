@@ -1,7 +1,7 @@
 {
   "version": 0.1,
   "level": "Utah",
-  "name": "road_network",
+  "name": "utah_scenario_with_cam",
   "mode": "None",
   "network_vizualization": "on",
   "vehicles": [

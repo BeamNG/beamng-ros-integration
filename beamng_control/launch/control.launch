@@ -1,15 +1,14 @@
 <launch>
     <!-- choose scenario-->
-    <arg name="scenario" default="west_coast_with_radar" 
+    <arg name="scenario" default="west_coast_with_all_sensors" 
     doc="[
     empty,
     west_coast_with_electrics,
     west_coast_with_many_vehicles_ultrasonic,
-    GridMap_all,
-    smallgrid_all,
+    GridMap_with_sensors,
+    smallgrid_with_sensors,
     west_coast_with_two_ultrasonic,
     utah_scenario_with_cam_lidar_and_imu, 
-    west_coast_rviz_demo, 
     west_coast_with_all_sensors,
     west_coast_with_imu, 
     west_coast_with_lidar

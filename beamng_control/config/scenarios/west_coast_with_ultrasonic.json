@@ -1,7 +1,7 @@
 {
   "version": 0.1,
   "level": "west_coast_usa",
-  "name": "road_network",
+  "name": "west_coast_with_ultrasonic",
   "mode": "None",
   "network_vizualization": "on",
   "vehicles": [
