@@ -17,7 +17,7 @@
     utah_scenario_with_cam_and_lidar
     ]"/>
     <arg name="scenario_config" value="$(find beamng_control)/config/scenarios/$(arg scenario).json"/>
-    <arg name="port" default="64256"/>
+    <arg name="port" default="25252"/>
     <!-- Use the variable SIMULATOR_IP in ~/.bashrc -->
     <arg name="host" default="$(env SIMULATOR_IP)"/>
     <!-- OR you can type your IPV4 here -->
