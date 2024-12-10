@@ -3,7 +3,7 @@
   "level": "west_coast_usa",
   "name": "west_coast_with_all_sensors",
   "mode": "None",
-  "network_vizualization": "on",
+  "network_vizualization": "off",
   "vehicles": [
     {
       "name": "ego_vehicle",
@@ -84,12 +84,6 @@
         {
           "name": "powertrain_sensor0",
           "type":"PowertrainSensor.default",
-          "position":[0, 0, 0],
-          "rotation": [0, -1, 0]
-        },
-        {
-          "name": "roads_sensor0",
-          "type":"RoadsSensor.default",
           "position":[0, 0, 0],
           "rotation": [0, -1, 0]
         },

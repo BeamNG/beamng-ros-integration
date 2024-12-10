@@ -2,7 +2,7 @@
     <!-- <arg name="vehicle_id"/> -->
     <arg name="vehicle_id" default="ego_vehicle"/>
     <!-- <arg name="vehicle_id" value="player_vehicle_1"/> -->
-    <arg name="port" default="64256"/>
+    <arg name="port" default="25252"/>
     <arg name="driving_mode" default="ai" doc="[ai, keyboard]"/>
     <!-- Use the variable SIMULATOR_IP in ~/.bashrc -->
     <arg name="host" default="$(env SIMULATOR_IP)"/>
