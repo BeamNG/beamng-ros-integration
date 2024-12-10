@@ -99,6 +99,7 @@ Running the BeamNG ROS integration requires three individual software components
 
 | BeamNG.tech | BeamNGpy | BeamNG ROS Integration |
 |-------------|----------|------------------------|
+| 0.34        |1.31      | 0.6.1                  |
 | 0.33.3      |1.30      | 0.6                    |
 | 0.32        |1.29      | 0.5                    |
 | 0.31        |1.28      | 0.4.1                  |
