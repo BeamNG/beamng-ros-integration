@@ -1,6 +1,14 @@
 Changelog
 =========
 
+
+Version 0.6.1
+=============
+- **Code Update**: Updated the code with the latest BeamNGpy 1.31 and BeamNG.tech 0.34.
+- **Port Update**: The used port with BeamNG is now 25252 instead of 64256.
+- Fixed some sensor issues.
+
+
 Version 0.6
 ===========
 - **Support for new sensors** : GPS, Roads sensor, Radar sensor, Ideal radar sensor, Mesh sensor, and Powertrain sensor.
