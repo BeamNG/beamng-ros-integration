@@ -14,4 +14,3 @@
         <param name="driving_mode" value="$(arg driving_mode)"/>
     </node>
 </launch>
-

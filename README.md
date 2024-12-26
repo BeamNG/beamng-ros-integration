@@ -10,13 +10,16 @@ For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
 ## Table of Contents
 
 
- - [Documentation](#docs)
- - [Features](#features) 
- - [Dependencies](#prereqs)
- - [Getting Started](#getstart)
- - [Compatibility](#compatibility)
- - [Troubleshooting](#troubleshooting)
- - [Contributions](#contributions)
+- [BeamNG ROS Integration](#beamng-ros-integration)
+  - [About](#about)
+  - [Table of Contents](#table-of-contents)
+  - [Documentation](#documentation)
+  - [Features](#features)
+  - [Dependencies](#dependencies)
+  - [Getting Started](#getting-started)
+  - [Compatibility](#compatibility)
+  - [Troubleshooting](#troubleshooting)
+  - [Contributions](#contributions)
  
 <a name="docs"></a>
 ## Documentation
@@ -57,7 +60,7 @@ To start the simulator via Python and BeamNGpy, follow these steps
 
 ```shell
 from beamngpy import BeamNGpy, Scenario, Vehicle
-bng = BeamNGpy('localhost', 64256)  # Initialize the BeamNGpy instance to connect to the simulator
+bng = BeamNGpy('localhost', 25252)  # Initialize the BeamNGpy instance to connect to the simulator
 bng.open(None, '-gfx', 'dx11', listen_ip='*',launch=True)  # Open the simulator with an open listening IP using DirectX11 renderer, use 'vk' instead of 'dx11' for Vulkan renderer
 ```
 
@@ -72,7 +75,7 @@ Alternatively, you can start the simulator directly from the command prompt:
     - Paste and execute the following command
 
 ```shell
-Bin64\BeamNG.tech.x64.exe -gfx dx11 -console -nosteam -tcom-listen-ip 0.0.0.0 -lua extensions.load('tech/techCore');tech_techCore.openServer(64256)
+Bin64\BeamNG.tech.x64.exe -gfx dx11 -console -nosteam -tcom-listen-ip 0.0.0.0 -lua extensions.load('tech/techCore');tech_techCore.openServer(25252)
 ```
 
 
