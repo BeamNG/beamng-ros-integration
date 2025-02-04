@@ -9,21 +9,25 @@ import tf
 import tf2_ros
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
-from typing import Dict, List, Any, Type
+from typing import Dict, List, Any, Type, Tuple
 import threading
 
 import geometry_msgs.msg as geom_msgs
 from geometry_msgs.msg import Point as geom_msgs_Point
+from geometry_msgs.msg import PoseStamped, TransformStamped  # Correct import for ROS1
+
 from visualization_msgs.msg import Marker, MarkerArray
 import tf.transformations as tf_transformations
 from tf.transformations import quaternion_from_euler, quaternion_multiply
 from tf import transformations as tf_trans 
-
 import beamng_msgs.msg as bng_msgs
 import beamngpy.sensors as bng_sensors
 import std_msgs.msg
 from sensor_msgs.msg import Range, Imu, NavSatFix, NavSatStatus, Image
 from sensor_msgs.point_cloud2 import PointCloud2
+from sensor_msgs.msg import PointField  # Add this import
+
+
 
 try:
     import radar_msgs.msg as radar_msgs
@@ -1245,48 +1249,74 @@ class LidarPublisher(SensorDataPublisher):
         sensor_name = topic_id.split("/")[-1]
         self.frame_lidar_sensor = f'{vehicle.vid}_{sensor_name}'
 
-    def _make_msg(self):
-        """
-        Converts the lidar sensor data into a ROS `PointCloud2` message.
 
-        Returns:
-            A ROS `PointCloud2` message containing the lidar point cloud data.
-        """
+
+    def _make_msg(self):
         header = std_msgs.msg.Header()
         header.frame_id = self.frame_lidar_sensor
         header.stamp = self.current_time
 
         readings_data = self._sensor.poll()
+        if not isinstance(readings_data, dict):
+            rospy.logwarn(f"Unexpected sensor data type: {type(readings_data)} - {readings_data}")
+            return  # Skip further processing
+
         points = np.array(readings_data['pointCloud'])
         colours = np.array(readings_data['colours'])
-        num_points = points.shape[0]
-        colours = colours[:num_points]
+        
+        # Ensure we have valid data
+        if points.size == 0:
+            rospy.logwarn(f'Empty point cloud for sensor {self.frame_lidar_sensor}')
+            return PointCloud2()
 
-        intensities = colours[:, 0] if colours.size > 0 else np.zeros((num_points,))
+        num_points = points.shape[0]
+        
+        # Ensure colours array matches points array length
+        if colours.size > 0:
+            # Truncate or pad colours array to match number of points
+            if colours.shape[0] > num_points:
+                colours = colours[:num_points]
+            elif colours.shape[0] < num_points:
+                # Pad with zeros if we have fewer colours than points
+                pad_length = num_points - colours.shape[0]
+                colours = np.pad(colours, ((0, pad_length), (0, 0)), mode='constant')
+            intensities = colours[:, 0]
+        else:
+            intensities = np.zeros(num_points)
 
         pointcloud_fields = [('x', np.float32), ('y', np.float32), ('z', np.float32), ('intensity', np.float32)]
 
+        # rospy.loginfo(f"Point cloud size: {points.shape[0]}")
+        if points.shape[0] < 10:
+            rospy.logwarn("Sparse point cloud detected.")
+
         try:
-            (trans_map, rot_map) = self.listener.lookupTransform(self.frame_map, self.frame_lidar_sensor, header.stamp)
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-            rospy.logwarn(f'No transform between {self.frame_map} and {self.frame_lidar_sensor} available with exception: {e}')
-            points = np.zeros((0, 3))
-            intensities = np.zeros((0,))
+            (trans_map, rot_map) = self.listener.lookupTransform(self.frame_map, self.frame_lidar_sensor, rospy.Time(0))
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            rospy.logwarn("Transform missing, falling back to identity.")
             trans_map = np.zeros(3)
-            rot_map = tf_transformations.quaternion_from_euler(0, 0, 0)  # Identity rotation
+            rot_map = tf.transformations.quaternion_from_euler(0, 0, 0)
 
         rotation_matrix = tf_transformations.quaternion_matrix(rot_map)[:3, :3]
-        rotated_points = np.dot(points - trans_map, rotation_matrix.T)
+        
+        # Avoid broadcasting error
+        if points.shape[0] > 0:
+            rotated_points = np.dot(points - trans_map, rotation_matrix.T)
+        else:
+            rotated_points = np.zeros((0, 3))  # Handle empty case gracefully
 
+        # Ensure all arrays have matching sizes
         pointcloud_data = np.zeros(rotated_points.shape[0], dtype=pointcloud_fields)
         pointcloud_data['x'] = rotated_points[:, 0]
         pointcloud_data['y'] = rotated_points[:, 1]
         pointcloud_data['z'] = rotated_points[:, 2]
-        pointcloud_data['intensity'] = intensities
+        pointcloud_data['intensity'] = intensities[:rotated_points.shape[0]]  # Ensure matching size
 
         msg = ros_numpy.msgify(PointCloud2, pointcloud_data)
         msg.header = header
         return msg
+
+
 
 
 class VehiclePublisher(BNGPublisher):
@@ -1311,7 +1341,7 @@ class VehiclePublisher(BNGPublisher):
         self.frame_map = 'map'
         self.tf_msg.header.frame_id = self.frame_map
         self.tf_msg.child_frame_id = self._vehicle.vid
-        self.alignment_quat = np.array([0, 1, 0, 0])  # Sets the forward direction as -y
+
         self.current_time = rospy.get_rostime()
 
         # Set up publishers for each sensor
@@ -1344,9 +1374,17 @@ class VehiclePublisher(BNGPublisher):
         self.tf_msg.transform.translation.x = data['pos'][0]
         self.tf_msg.transform.translation.y = data['pos'][1]
         self.tf_msg.transform.translation.z = data['pos'][2]
+        # alignment_quat = np.array([0, 1, 0, 0])  # Sets the forward direction as -y
+        # alignment_quat = np.array([1, 0, 0, 0])  # Identity quaternion
+        quat_orientation = np.array([data['rotation'][0], data['rotation'][1], data['rotation'][2], data['rotation'][3]])        
+        # quat_orientation = quaternion_multiply(alignment_quat, quat_orientation)
+        # quat_orientation /= np.linalg.norm(quat_orientation)
 
-        quat_orientation = np.array([data['rotation'][0], data['rotation'][1], data['rotation'][2], data['rotation'][3]])
-        quat_orientation = quaternion_multiply(self.alignment_quat, quat_orientation)
+        # Adjust orientation for ROS (BeamNG to ROS TF)
+        alignment_quat = np.array([0, 0, np.sin(np.pi/4), np.cos(np.pi/4)])  # 90° rotation around z-axis
+        quat_orientation = quaternion_multiply(alignment_quat, quat_orientation)
+
+        # Normalize the quaternion
         quat_orientation /= np.linalg.norm(quat_orientation)
 
         self.tf_msg.transform.rotation.x = quat_orientation[0]
@@ -1421,6 +1459,140 @@ class VehiclePublisher(BNGPublisher):
             self.visualizer.publish(mark)
 
 
+
+def beamng_rot_to_ros_coords(quat: Tuple[float, float, float, float]) -> Tuple[float, float, float, float]:
+    x = 0.7071067811865476  # sqrt(2)/2
+    return (
+        x * (quat[1] - quat[0]),
+        -x * (quat[0] + quat[1]),
+        -x * (quat[2] + quat[3]),
+        x * (quat[3] - quat[2]),
+    )
+
+
+def beamng_vec_to_ros_coords(vec: Tuple[float, float, float]) -> Tuple[float, float, float]:
+    return (-vec[1], vec[0], vec[2])
+
+
+# class VehiclePublisher:
+#     def __init__(self, vehicle, node_name, visualize=True):
+#         self._vehicle = vehicle
+#         self.node_name = node_name
+#         self._sensor_publishers = []
+
+#         # Set up a broadcaster for vehicle pose
+#         self._broadcaster_pose = tf.TransformBroadcaster()
+#         self.tf_msg = TransformStamped()  # Use TransformStamped for TF
+#         self.frame_map = 'map'
+#         self.tf_msg.header.frame_id = self.frame_map
+#         self.tf_msg.child_frame_id = self._vehicle.vid  # Correct attribute
+
+#         # Set up publishers for each sensor
+#         for sensor_name, sensor in vehicle.sensors.items():
+#             topic_id = [node_name, vehicle.vid, sensor_name]
+#             topic_id = '/'.join([str(x) for x in topic_id])
+#             pub = get_sensor_publisher(sensor)
+#             rospy.logdebug(f'pub: {pub}')
+#             if pub == CameraPublisher:
+#                 pub = pub(sensor, topic_id, self._vehicle)
+#             else:
+#                 pub = pub(sensor, topic_id)
+#             self._sensor_publishers.append(pub)
+
+#         # Optionally set up visualization for vehicle position
+#         self.visualizer = None
+#         if visualize:
+#             topic_id = [node_name, vehicle.vid, 'marker']
+#             topic_id = '/'.join(topic_id)
+#             self.visualizer = rospy.Publisher(topic_id, Marker, queue_size=1)
+
+#     def broadcast_vehicle_pose(self, data):
+#         """
+#         Broadcasts the vehicle pose as a ROS TF transform.
+
+#         Args:
+#             data: The data containing the vehicle's pose (position and orientation).
+#         """
+#         # Transform position and rotation from BeamNG to ROS coordinates
+#         ros_position = beamng_vec_to_ros_coords(data['pos'])
+#         ros_orientation = beamng_rot_to_ros_coords(data['rotation'])
+
+#         # Populate TransformStamped message
+#         self.tf_msg.header.stamp = rospy.Time.now()
+#         self.tf_msg.transform.translation.x = ros_position[0]
+#         self.tf_msg.transform.translation.y = ros_position[1]
+#         self.tf_msg.transform.translation.z = ros_position[2]
+#         self.tf_msg.transform.rotation.x = ros_orientation[0]
+#         self.tf_msg.transform.rotation.y = ros_orientation[1]
+#         self.tf_msg.transform.rotation.z = ros_orientation[2]
+#         self.tf_msg.transform.rotation.w = ros_orientation[3]
+
+#         # Broadcast TF
+#         self._broadcaster_pose.sendTransform(
+#             (
+#                 self.tf_msg.transform.translation.x,
+#                 self.tf_msg.transform.translation.y,
+#                 self.tf_msg.transform.translation.z,
+#             ),
+#             (
+#                 self.tf_msg.transform.rotation.x,
+#                 self.tf_msg.transform.rotation.y,
+#                 self.tf_msg.transform.rotation.z,
+#                 self.tf_msg.transform.rotation.w,
+#             ),
+#             rospy.Time.now(),
+#             self.tf_msg.child_frame_id,
+#             self.tf_msg.header.frame_id,
+#         )
+
+#     def state_to_marker(self, data, marker_ns):
+#         mark = Marker()
+#         mark.header.frame_id = self.frame_map
+#         mark.header.stamp = rospy.Time.now()
+#         mark.type = Marker.SPHERE
+#         mark.ns = marker_ns
+#         mark.action = Marker.ADD
+#         mark.id = 0
+#         mark.lifetime = rospy.Duration()
+
+#         ros_position = beamng_vec_to_ros_coords(data['pos'])
+#         ros_orientation = beamng_rot_to_ros_coords(data['rotation'])
+
+#         mark.pose.position.x = ros_position[0]
+#         mark.pose.position.y = ros_position[1]
+#         mark.pose.position.z = ros_position[2]
+
+#         mark.pose.orientation.x = ros_orientation[0]
+#         mark.pose.orientation.y = ros_orientation[1]
+#         mark.pose.orientation.z = ros_orientation[2]
+#         mark.pose.orientation.w = ros_orientation[3]
+
+#         mark.scale.x = 5
+#         mark.scale.y = 1.9
+#         mark.scale.z = 1.5
+
+#         mark.color.r = 0.0
+#         mark.color.g = 1.0
+#         mark.color.b = 0.0
+#         mark.color.a = 0.5
+
+#         return mark
+
+#     def publish(self, current_time):
+#         self._vehicle.poll_sensors()
+#         self.broadcast_vehicle_pose(self._vehicle.sensors['state'].data)
+
+#         # Start a thread to publish each sensor's data
+#         for pub in self._sensor_publishers:
+#             threading.Thread(target=pub.publish, args=(current_time,), daemon=True).start()
+
+#         # Publish visualization marker if enabled
+#         if self.visualizer is not None:
+#             mark = self.state_to_marker(self._vehicle.sensors['state'].data, self._vehicle.vid)
+#             self.visualizer.publish(mark)
+
+
+
 class NetworkPublisher(BNGPublisher):
     """
     Publishes road network visualization data as `MarkerArray` messages.
@@ -1448,9 +1620,18 @@ class NetworkPublisher(BNGPublisher):
         # Check if roads data is valid and not empty
         if isinstance(roads, dict) and roads:
             network_def = dict()
+            # for r_id, r_inf in roads.items():
+            #     if r_inf['drivability'] != '-1':
+            #         network_def[int(r_id)] = self._game_client.get_road_edges(r_id)
+
             for r_id, r_inf in roads.items():
                 if r_inf['drivability'] != '-1':
-                    network_def[int(r_id)] = self._game_client.get_road_edges(r_id)
+                    try:
+                        network_def[int(r_id)] = self._game_client.get_road_edges(r_id)
+                    except ValueError:
+                        rospy.logwarn(f"Skipping road with non-integer ID: {r_id}")
+                        continue
+
 
             self._road_network = MarkerArray()
             for r_id, road in network_def.items():
