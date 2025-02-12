@@ -1,5 +1,10 @@
 # BeamNG ROS Integration
 
+[![Documentation](https://img.shields.io/badge/Documentation-blue?logo=readthedocs&logoColor=white)](https://beamngpy.readthedocs.io/en/latest/bngros.html)
+[![Repository](https://img.shields.io/badge/Repository-grey?logo=github&logoColor=white)](https://github.com/BeamNG/beamng-ros-integration)
+
+This integration is for ROS1, for ROS2 check [BeamNG ROS2 Integration](https://github.com/BeamNG/beamng-ros2-integration).
+
 ## About
 
 This repository contains packages to support the interoperability between [BeamNG.tech](https://beamng.tech/) and ROS.
@@ -13,7 +18,6 @@ For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
 - [BeamNG ROS Integration](#beamng-ros-integration)
   - [About](#about)
   - [Table of Contents](#table-of-contents)
-  - [Documentation](#documentation)
   - [Features](#features)
   - [Dependencies](#dependencies)
   - [Getting Started](#getting-started)
@@ -21,9 +25,6 @@ For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
   - [Troubleshooting](#troubleshooting)
   - [Contributions](#contributions)
  
-<a name="docs"></a>
-## Documentation
-[![](https://raw.githubusercontent.com/ChristianBirchler/sdc-scissor/main/docs/images/readthedocs.png)](https://beamngpy.readthedocs.io/en/latest/bngros.html)
 
 ## Features
 
