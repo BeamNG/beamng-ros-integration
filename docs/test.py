@@ -18,5 +18,5 @@ out_dir = "build"
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
 
-with open("build/index.html") as f:
+with open("build/index.html", "w") as f:
     f.write(content)
