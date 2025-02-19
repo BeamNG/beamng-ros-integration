@@ -3,20 +3,20 @@ Changelog
 
 
 Version 0.6.1
-=============
+-------------
 - **Code Update**: Updated the code with the latest BeamNGpy 1.31 and BeamNG.tech 0.34.
 - **Port Update**: The used port with BeamNG is now 25252 instead of 64256.
 - Fixed some sensor issues.
 
 
 Version 0.6
-===========
+-----------
 - **Support for new sensors** : GPS, Roads sensor, Radar sensor, Ideal radar sensor, Mesh sensor, and Powertrain sensor.
 - **New scenarios**.
 - **in-code documentations**
 
 Version 0.5
-=========================
+-----------
 - **LIDAR Modes:** This automated LiDAR sensor operates in three modes: Full 360 Degrees Mode for comprehensive, rapid updates around an 'up' vector; LFO Mode for low-frequency, directional readings; and Static Mode for fixed, angle-specific readings, with 360 mode and other settings customizable via flags.
 
 - **BeamNGpy API Update:** Updated connection API in BeamNGpy:
@@ -44,7 +44,7 @@ imu_pos = AdvancedIMU(...)
 readings = imu_pos.poll()
 
 Version 0.4
-=========================
+-----------
 - **LIDAR Orientation:** Corrected the orientation of the LIDAR sensor.
 
 - **Electrics Sensors:** Fixed attributes of the Electrics sensors.
@@ -62,7 +62,7 @@ Version 0.4
 - **Launch Configuration:** Removed `bridge.launch` and now depend only on `example.launch`. Minimized the arguments by removing `ns group`.
 
 Version 0.3
-=========================
+-----------
 - **Automation Sensors:** Fixed the API for the automation sensors (Camera, LIDAR, and Ultrasonic).
 
 - **Static Transform:** Added a static transform function for the automation sensors.
@@ -76,13 +76,13 @@ Version 0.3
 - **Acknowledgment:** Thanks to `@podgorki <https://github.com/podgorki>` for the contribution.
 
 Version 0.2.1
-=========================
+-------------
 - **Code Update:** Updated the code with the latest BeamNGpy 1.26 and BeamNG.Tech 0.28.
 
 - **Bug Fix:** Fixed the issue with handbrake and throttle.
 
 Version 0.2
-=========================
+-----------
 - **Keyboard Control:** Added `beamng_teleop_keyboard` for keyboard control of the vehicle (from ROS).
 
 - **New Topic:** Added `/cmd_vel` topic.
@@ -90,11 +90,11 @@ Version 0.2
 - **Handbrake Control:** Added handbrake (parking brake) control.
 
 Version 0.1.1
-=========================
+-------------
 - **Zero Velocity:** Added zero velocity by pressing the space bar.
 
 Version 0.1
-=========================
+-----------
 - **Basic Bridge:** Basic bridge with BeamNG.Tech.
 
 - **ROS Packages:** Three ROS packages are released:
