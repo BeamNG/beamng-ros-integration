@@ -6,7 +6,8 @@ set -eo pipefail
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd "$SCRIPT_DIR"
 
-# Add relevant branches locally
+# Add relevant branches and tags locally
+git fetch origin --tags
 git fetch origin master:master
 if [ "$USE_DEV_BRANCH" == "true" ]; then
     git fetch origin dev:dev
