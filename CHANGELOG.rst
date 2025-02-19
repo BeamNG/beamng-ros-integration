@@ -29,19 +29,16 @@ Version 0.5
 - **Support for AI driving node:** AI mode is added to ``beamng_agent``. 
 
 Note: use the following code to upgrade your imu to advanceIMU
-from:
+from::
 
-imu_pos = IMU(pos=(0.73, 0.51, 0.8), debug=True)
+    imu_pos = IMU(pos=(0.73, 0.51, 0.8), debug=True)
+    vehicle.sensors.attach('imu_pos', imu_pos)
+    readings = vehicle.sensors.poll()['imu_pos']
 
-vehicle.sensors.attach('imu_pos', imu_pos)
+to::
 
-readings = vehicle.sensors.poll()['imu_pos']
-
-to:
-
-imu_pos = AdvancedIMU(...)
-
-readings = imu_pos.poll()
+    imu_pos = AdvancedIMU(...)
+    readings = imu_pos.poll()
 
 Version 0.4
 -----------
