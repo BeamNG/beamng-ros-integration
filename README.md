@@ -12,18 +12,15 @@ BeamNG.tech is a driving simulation platform, suitable for commercial and academ
 Free licenses are available for non-commercial and academic use.
 Inquiries can be made through our [registration form](https://register.beamng.tech/).
 For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
+
 ## Table of Contents
 
-
-- [BeamNG ROS Integration](#beamng-ros-integration)
-  - [About](#about)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Dependencies](#dependencies)
-  - [Getting Started](#getting-started)
-  - [Compatibility](#compatibility)
-  - [Troubleshooting](#troubleshooting)
-  - [Contributions](#contributions)
+- [Features](#features)
+- [Dependencies](#dependencies)
+- [Getting Started](#getting-started)
+- [Compatibility](#compatibility)
+- [Troubleshooting](#troubleshooting)
+- [Contributions](#contributions)
  
 
 ## Features
