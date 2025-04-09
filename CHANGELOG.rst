@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 0.7.0
+-------------
+- **Code Update**: Updated the code with the latest BeamNGpy 1.31 and BeamNG.tech 0.34.
+- **Port Update**: Fixed Lidar sensor publisher
+- **documentations**: Created differented documentation website that supports versioning.
 
 Version 0.6.1
 -------------
