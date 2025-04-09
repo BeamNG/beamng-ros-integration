@@ -1,5 +1,10 @@
 # BeamNG ROS Integration
 
+[![Documentation](https://img.shields.io/badge/Documentation-blue?logo=googledocs&logoColor=white)](https://documentation.beamng.com/api/ros1)
+[![Repository](https://img.shields.io/badge/Repository-grey?logo=github&logoColor=white)](https://github.com/BeamNG/beamng-ros-integration)
+
+This integration is for ROS1, for ROS2 check [BeamNG ROS2 Integration](https://github.com/BeamNG/beamng-ros2-integration).
+
 ## About
 
 This repository contains packages to support the interoperability between [BeamNG.tech](https://beamng.tech/) and ROS.
@@ -7,23 +12,16 @@ BeamNG.tech is a driving simulation platform, suitable for commercial and academ
 Free licenses are available for non-commercial and academic use.
 Inquiries can be made through our [registration form](https://register.beamng.tech/).
 For inquiries regarding commercial use, contact us at <licensing@beamng.com>.
+
 ## Table of Contents
 
-
-- [BeamNG ROS Integration](#beamng-ros-integration)
-  - [About](#about)
-  - [Table of Contents](#table-of-contents)
-  - [Documentation](#documentation)
-  - [Features](#features)
-  - [Dependencies](#dependencies)
-  - [Getting Started](#getting-started)
-  - [Compatibility](#compatibility)
-  - [Troubleshooting](#troubleshooting)
-  - [Contributions](#contributions)
+- [Features](#features)
+- [Dependencies](#dependencies)
+- [Getting Started](#getting-started)
+- [Compatibility](#compatibility)
+- [Troubleshooting](#troubleshooting)
+- [Contributions](#contributions)
  
-<a name="docs"></a>
-## Documentation
-[![](https://raw.githubusercontent.com/ChristianBirchler/sdc-scissor/main/docs/images/readthedocs.png)](https://beamngpy.readthedocs.io/en/latest/bngros.html)
 
 ## Features
 
@@ -102,6 +100,7 @@ Running the BeamNG ROS integration requires three individual software components
 
 | BeamNG.tech | BeamNGpy | BeamNG ROS Integration |
 |-------------|----------|------------------------|
+| 0.35        |1.32      | 0.7                    |
 | 0.34        |1.31      | 0.6.1                  |
 | 0.33.3      |1.30      | 0.6                    |
 | 0.32        |1.29      | 0.5                    |

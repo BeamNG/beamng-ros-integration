@@ -1,24 +1,12 @@
-.. BeamNG.tech ROS Integration documentation master file, created by
-   sphinx-quickstart on Wed Jun  9 21:59:06 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+BeamNG ROS Integration Documentation
+====================================
 
-Welcome to BeamNG.tech ROS Integration's documentation!     
-=======================================================
+Welcome to the documentation of the BeamNG ROS Integration.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Contents
 
-   readme.rst
-   modules.rst
-   simulink.rst
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   Introduction <readme.rst>
+   Documentation <bngros.rst>
+   changelog.rst
