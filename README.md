@@ -1,3 +1,19 @@
+<p align="center">
+  <img src="https://github.com/BeamNG/beamng-ros-integration/blob/master/media/announcement.webp" width="800" alt="Announcement" />
+</p>
+
+# 🚨 Archived Project Notice
+ 
+> 🛑 **End-of-Life Notice**: This project is no longer maintained as ROS 1 (including Noetic Ninjemys) reaches EOL on **May 31, 2025** ([Announcement](https://www.ros.org/blog/noetic-eol/)).
+
+This repository is officially archived. It served as the bridge between BeamNG.tech and **ROS 1** distributions. With the lifecycle of ROS 1 coming to an end, active development and maintenance of this integration has been discontinued.
+
+➡️ For continued development and ROS 2 support, please visit our current [BeamNG ROS2 Integration](https://github.com/BeamNG/beamng-ros2-integration) repository.
+
+We thank the community for your contributions, feedback, and enthusiasm throughout this project's lifetime!
+
+
+
 # BeamNG ROS Integration
 
 [![Documentation](https://img.shields.io/badge/Documentation-blue?logo=googledocs&logoColor=white)](https://documentation.beamng.com/api/ros1)
