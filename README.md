@@ -7,7 +7,7 @@ This integration is for ROS1, for ROS2 check [BeamNG ROS2 Integration](https://g
 
 > **Archived Project Notice**
 > 
-> 🛑 **End-of-Life Notice**: This project is no longer maintained as ROS 1 (including Noetic Ninjemys) reaches EOL on **May 31, 2025** ([Announcement](https://www.ros.org/blog/noetic-eol/)).
+> 🛑 **End-of-Life Notice**: This project is no longer maintained as ROS 1 (including Noetic Ninjemys) reached EOL on **May 31, 2025** ([Announcement](https://www.ros.org/blog/noetic-eol/)).
 > 
 > This repository is officially archived. It served as the bridge between BeamNG.tech and **ROS 1** distributions. With the lifecycle of ROS 1 coming to an end, active development and maintenance of this integration has been discontinued.
 > 
