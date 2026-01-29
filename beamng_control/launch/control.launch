@@ -1,6 +1,6 @@
 <launch>
     <!-- choose scenario-->
-    <arg name="scenario" default="west_coast_with_all_sensors" 
+    <arg name="scenario" default="utah_scenario_with_cam_and_lidar" 
     doc="[
     empty,
     west_coast_with_electrics,
@@ -8,7 +8,6 @@
     GridMap_with_sensors,
     smallgrid_with_sensors,
     west_coast_with_two_ultrasonic,
-    utah_scenario_with_cam_lidar_and_imu, 
     west_coast_with_all_sensors,
     west_coast_with_imu, 
     west_coast_with_lidar
@@ -29,7 +28,7 @@
     </node>
 
   <!-- rviz -->
-    <arg name="open_rviz" value="true"/>
+    <arg name="open_rviz" default="true"/>
     <group if="$(arg open_rviz)"> 
         <node pkg="rviz" type="rviz" name="rviz" required="true"
             args="-d $(find beamng_control)/config/rviz/example.rviz" />
