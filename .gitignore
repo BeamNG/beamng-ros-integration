@@ -5,3 +5,4 @@ docs/source/_build
 docs/production/
 
 **my.launch
+beamng_control/config/scenarios/**
