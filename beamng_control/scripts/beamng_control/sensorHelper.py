@@ -96,8 +96,10 @@ def get_advanced_imu(bng, name, vehicle, position, rotation, **spec):
     Raises:
         SensorSpecificationError: If sensor initialization fails due to incorrect specifications.
     """
+    # Filter out None values to avoid passing unsupported parameters
+    filtered_spec = {k: v for k, v in spec.items() if v is not None}
     try:
-        AdImu = bng_sensors.AdvancedIMU(bng=bng, name=name, vehicle=vehicle, pos=position, dir=rotation, **spec)
+        AdImu = bng_sensors.AdvancedIMU(bng=bng, name=name, vehicle=vehicle, pos=position, dir=rotation, **filtered_spec)
     except TypeError as e:
         raise SensorSpecificationError(f'Could not get AdvancedIMU instance. Error: {e}')
     return AdImu

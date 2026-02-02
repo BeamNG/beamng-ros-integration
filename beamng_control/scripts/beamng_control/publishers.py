@@ -570,7 +570,11 @@ class MeshPublisher(SensorDataPublisher):
         Returns:
             A `MeshSensorBeam` message.
         """
-        return bng_msgs.MeshSensorBeam(stress=beam["stress"])
+        if isinstance(beam, dict):
+            stress = beam.get("stress")
+        else:
+            stress = beam
+        return bng_msgs.MeshSensorBeam(stress=stress)
 
     def _node_to_msg(self, node: Dict[str, Any]) -> bng_msgs.MeshSensorNode:
         """
@@ -582,13 +586,43 @@ class MeshPublisher(SensorDataPublisher):
         Returns:
             A `MeshSensorNode` message.
         """
+        if isinstance(node, dict):
+            part_origin = node.get("partOrigin", "")
+            mass = node["mass"]
+            pos = node["pos"]
+            vel = node["vel"]
+            force = node["force"]
+        else:
+            data_keys = getattr(getattr(bng_sensors, "Mesh", None), "DATA_KEYS", None)
+            data_keys = data_keys or {"pos": 0, "force": 1, "vel": 2, "mass": 3, "partOrigin": 4}
+            part_origin = node[data_keys["partOrigin"]] if len(node) > data_keys["partOrigin"] else ""
+            mass = node[data_keys["mass"]]
+            pos = node[data_keys["pos"]]
+            vel = node[data_keys["vel"]]
+            force = node[data_keys["force"]]
         return bng_msgs.MeshSensorNode(
-            part_origin=node.get("partOrigin", ""),
-            mass=node["mass"],
-            pos=self.xyz_to_point(**node["pos"]),
-            vel=self.xyz_to_vec3(**node["vel"]),
-            force=self.xyz_to_vec3(**node["force"]),
+            part_origin=part_origin,
+            mass=mass,
+            pos=self._xyz_to_point(pos),
+            vel=self._xyz_to_vec3(vel),
+            force=self._xyz_to_vec3(force),
         )
+
+    def _xyz_to_point(self, value: Any) -> geom_msgs.Point:
+        x, y, z = self._xyz_from_value(value)
+        return self.xyz_to_point(x=x, y=y, z=z)
+
+    def _xyz_to_vec3(self, value: Any) -> geom_msgs.Vector3:
+        x, y, z = self._xyz_from_value(value)
+        return self.xyz_to_vec3(x=x, y=y, z=z)
+
+    @staticmethod
+    def _xyz_from_value(value: Any):
+        if isinstance(value, dict):
+            return value["x"], value["y"], value["z"]
+        if isinstance(value, (list, tuple)) and len(value) >= 3:
+            return value[0], value[1], value[2]
+        return 0.0, 0.0, 0.0
 
     def _make_msg(self):
         """
@@ -794,120 +828,9 @@ class ElectricsPublisher(SensorDataPublisher):
         """
         data = self._sensor.data
         msg = bng_msgs.ElectricsSensor()
-        msg.accXSmooth = data['accXSmooth']
-        msg.accYSmooth = data['accYSmooth']
-        msg.accZSmooth = data['accZSmooth']
-        msg.isABSBrakeActive = data['isABSBrakeActive']
-        msg.trip = data['trip']
-        msg.airflowspeed = data['airflowspeed']
-        msg.parkingbrake_input = data['parkingbrake_input']
-        msg.parkingbrakelight = data['parkingbrakelight']
-        msg.parking = data['parking']
-        msg.hazard = data['hazard']
-        msg.hoodCatchCoupler_notAttached = data['hoodCatchCoupler_notAttached']
-        msg.oil = data['oil']
-        msg.lowhighbeam = data['lowhighbeam']
-        msg.lowbeam = data['lowbeam']
-        msg.highbeam = data['highbeam']
-        msg.lowhighbeam_signal_R = data['lowhighbeam_signal_R']
-        msg.lowhighbeam_signal_L = data['lowhighbeam_signal_L']
-        msg.gear = data['gear']
-        msg.brake_input = data['brake_input']
-        msg.hasABS = data['hasABS']
-        msg.throttle = data['throttle']
-        msg.doorFLCoupler_notAttached = data['doorFLCoupler_notAttached']
-        msg.highbeam_wigwag_L = data['highbeam_wigwag_L']
-        msg.reverse_wigwag_R = data['reverse_wigwag_R']
-        msg.reverse_wigwag_L = data['reverse_wigwag_L']
-        msg.reverse = data['reverse']
-        msg.turboBoost = data['turboBoost']
-        msg.turboBoostMax = data['turboBoostMax']
-        msg.brakelight_signal_R = data['brakelight_signal_R']
-        msg.brakelight_signal_L = data['brakelight_signal_L']
-        msg.ignitionLevel = data['ignitionLevel']
-        msg.abs = data['abs']
-        msg.minGearIndex = data['minGearIndex']
-        msg.maxGearIndex = data['maxGearIndex']
-        msg.nop = data['nop']
-        msg.gearboxMode = data['gearboxMode']
-        msg.gearModeIndex = data['gearModeIndex']
-        msg.virtualAirspeed = data['virtualAirspeed']
-        msg.driveshaft = data['driveshaft']
-        msg.steering = data['steering']
-        msg.lockupClutchRatio = data['lockupClutchRatio']
-        msg.turboRpmRatio = data['turboRpmRatio']
-        msg.turboSpin = data['turboSpin']
-        msg.turboRPM = data['turboRPM']
-        msg.smoothShiftLogicAV = data['smoothShiftLogicAV']
-        msg.steering_input = data['steering_input']
-        msg.engineRunning = data['engineRunning']
-        msg.rpmspin = data['rpmspin']
-        msg.boost = data['boost']
-        msg.boostMax = data['boostMax']
-        msg.idlerpm = data['idlerpm']
-        msg.lights = data['lights']
-        msg.turnsignal = data['turnsignal']
-        msg.altitude = data['altitude']
-        msg.odometer = data['odometer']
-        msg.rpm = data['rpm']
-        msg.lightbar = data['lightbar']
-        msg.maxrpm = data['maxrpm']
-        msg.tailgateCoupler_notAttached = data['tailgateCoupler_notAttached']
-        msg.clutch = data['clutch']
-        msg.fuel = data['fuel']
-        msg.hasTCS = data['hasTCS']
-        msg.doorRRCoupler_notAttached = data['doorRRCoupler_notAttached']
-        msg.airspeed = data['airspeed']
-        msg.tcs = data['tcs']
-        msg.doorRLCoupler_notAttached = data['doorRLCoupler_notAttached']
-        msg.esc = data['esc']
-        msg.dseWarningPulse = data['dseWarningPulse']
-        msg.highbeam_wigwag_R = data['highbeam_wigwag_R']
-        msg.parkingbrake = data['parkingbrake']
-        msg.isYCBrakeActive = data['isYCBrakeActive']
-        msg.doorFRCoupler_notAttached = data['doorFRCoupler_notAttached']
-        msg.steeringUnassisted = data['steeringUnassisted']
-        msg.clutch_input = data['clutch_input']
-        msg.throttle_input = data['throttle_input']
-        msg.horn = data['horn']
-        msg.brake = data['brake']
-        msg.wheelspeed = data['wheelspeed']
-        msg.hoodLatchCoupler_notAttached = data['hoodLatchCoupler_notAttached']
-        msg.lowpressure = data['lowpressure']
-        msg.isTCBrakeActive = data['isTCBrakeActive']
-        msg.hasESC = data['hasESC']
-        msg.abs_active = data['abs_active']
-        msg.avg_wheel_av = data['avg_wheel_av']
-        msg.brake_lights = data['brake_lights']
-        msg.clutch_ratio = data['clutch_ratio']
-        msg.engine_load = data['engine_load']
-        msg.engine_throttle = data['engine_throttle']
-        msg.exhaust_flow = data['exhaust_flow']
-        msg.fog_lights = data['fog_lights']
-        msg.fuel_volume = data['fuel_volume']
-        msg.fuel_capacity = data['fuel_capacity']
-        msg.gear_a = data['gear_a']
-        msg.gear_index = data['gear_index']
-        msg.gear_m = data['gear_m']
-        msg.headlights = data['headlights']
-        msg.oil_temperature = data['oil_temperature']
-        msg.radiator_fan_spin = data['radiator_fan_spin']
-        msg.rpm_tacho = data['rpm_tacho']
-        msg.signal_l = data['signal_l']
-        msg.signal_r = data['signal_r']
-        msg.water_temperature = data['water_temperature']
-        msg.two_step = data['two_step']
-        msg.running = data['running']
-        msg.ignition = data['ignition']
-        msg.freezeState = data['freezeState']
-        msg.left_signal = data['left_signal']
-        msg.hazard_signal = data['hazard_signal']
-        msg.esc_active = data['esc_active']
-        msg.check_engine = data['check_engine']
-        msg.lowfuel = data['lowfuel']
-        msg.right_signal = data['right_signal']
-        msg.tcs_active = data['tcs_active']
-        msg.is_shifting = data['is_shifting']
+        for field in msg.__slots__:
+            if field in data:
+                setattr(msg, field, data[field])
         return msg
 
 
